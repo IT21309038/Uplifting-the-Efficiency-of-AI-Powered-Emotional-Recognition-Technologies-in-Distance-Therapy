@@ -115,11 +115,12 @@ export default function SignInSide() {
           sx={{
             backgroundImage: "url(/images/background/login.png)",
             backgroundRepeat: "no-repeat",
-            backgroundSize: "cover",
+            backgroundSize: "cover", // Fill the container with the image
             backgroundPosition: "center",
             backgroundColor: "rgba(0, 0, 0, 0.2)",
           }}
         />
+
         <Grid item xs={12} md={4} component={Paper} elevation={6} square>
           <Box
             sx={{
