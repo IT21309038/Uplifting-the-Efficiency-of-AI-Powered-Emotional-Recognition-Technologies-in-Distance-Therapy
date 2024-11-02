@@ -1,0 +1,134 @@
+body {
+  background-color: #f5f5f5;
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+}
+body::-webkit-scrollbar {
+  width: 7px;
+}
+
+body::-webkit-scrollbar-thumb {
+  background-color: #6e6e6e;
+  border-radius: 10px;
+}
+
+body::-webkit-scrollbar-track {
+  background-color: #bfbfbf;
+  border-radius: 10px;
+  margin: 20px !important;
+}
+
+/*Data Grid Styling*/
+.MuiDataGrid-columnHeader {
+  text-transform: uppercase;
+}
+
+.MuiTableHead-root tr th {
+  text-transform: uppercase;
+}
+.MuiDataGrid-withBorderColor {
+  outline: none !important;
+}
+
+.MuiDataGrid-root .MuiDataGrid-cell:focus-within {
+  outline: none !important;
+}
+
+.MuiDataGrid-columnHeader:focus,
+.MuiDataGrid-cell:focus {
+  outline: none !important;
+}
+
+.MuiDataGrid-cell {
+  display: flex !important;
+  align-items: center !important;
+}
+
+.MuiDataGrid-scrollbar--horizontal {
+  height: 7px;
+}
+
+/* .MuiDataGrid-scrollbar--vertical {
+  display: none !important;
+} */
+/* .MuiDataGrid-columnHeader {
+  background-color: #f1f1f1;
+  font-weight: 900;
+  font-size: 14px;
+  text-transform: uppercase;
+}
+
+.MuiDataGrid-columnHeaders {
+  background-color: #f1f1f1;
+}
+
+.MuiTableHead-root tr th {
+  background-color: #f1f1f1 !important;
+  text-transform: uppercase;
+}
+
+
+.css-ptkaw2-MuiDataGrid-root .MuiDataGrid-withBorderColor {
+  outline: none !important;
+  } */
+
+.MuiDataGrid-root .MuiDataGrid-cell:focus-within {
+  outline: none !important;
+}
+
+.css-ptkaw2-MuiDataGrid-root .MuiDataGrid-columnHeader:focus,
+.css-ptkaw2-MuiDataGrid-root .MuiDataGrid-cell:focus {
+  outline: none !important;
+}
+
+.MuiDataGrid-cell {
+  display: flex !important;
+  align-items: center !important;
+}
+/*Data Grid Styling*/
+
+/*Swal Styling*/
+.swal2-container {
+  z-index: 9999 !important;
+}
+
+.swal2-popup {
+  font-size: 0.75rem !important;
+}
+
+.swal2-title {
+  margin: 0px 40px !important;
+}
+
+.swal2-html-container {
+  margin: 0px 40px !important;
+}
+/*Swal Styling*/
+div:where(.swal2-container) button:where(.swal2-styled).swal2-confirm {
+  background-color: #007bff !important;
+  border-color: #007bff !important;
+  color: white !important;
+}
+
+div:where(.swal2-container) button:where(.swal2-styled).swal2-confirm:focus {
+  background-color: #007bff !important;
+  border-color: #007bff !important;
+  color: white !important;
+  outline: 2px solid #007bff; /* Focus outline with the same color */
+}
+
+
+div:where(.swal2-container) button:where(.swal2-styled).swal2-cancel {
+  background-color: #d60707 !important;
+  border: 1px solid #d60707 !important;
+  color: white !important;
+}
+
+div:where(.swal2-container) button:where(.swal2-styled).swal2-cancel:focus {
+  background-color: #d60707 !important;
+  border: 1px solid #d60707 !important;
+  color: white !important;
+  outline: 2px solid #d60707; /* Focus outline with the same color */
+}
+
