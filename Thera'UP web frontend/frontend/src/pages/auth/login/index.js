@@ -124,7 +124,7 @@ export default function SignInSide() {
         <Grid item xs={12} md={4} component={Paper} elevation={6} square>
           <Box
             sx={{
-              my: 10,
+              my: 5,
               mx: 8,
               display: "flex",
               flexDirection: "column",
@@ -154,9 +154,7 @@ export default function SignInSide() {
               component="form"
               noValidate
               onSubmit={handleSubmit}
-              sx={{
-                mt: 2,
-              }}
+              sx={{ mt: 1 }}
             >
               <TextField
                 margin="normal"
@@ -211,11 +209,22 @@ export default function SignInSide() {
                 type="submit"
                 fullWidth
                 variant="contained"
-                sx={{ mt: 3 }}
+                sx={{ mt: 2 }}
               >
                 Sign In
               </Button>
-              <Copyright sx={{ mt: 5 }} />
+
+              <Typography sx={{py:2, display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
+                Don&apos;t have an account?
+              </Typography>
+
+              <Button
+                fullWidth
+                variant="contained"
+              >
+                create an account
+              </Button>
+              <Copyright sx={{py: 3}} />
             </Box>
           </Box>
         </Grid>
