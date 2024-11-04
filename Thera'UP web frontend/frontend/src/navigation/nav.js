@@ -1,5 +1,4 @@
 import { Icon } from "@iconify/react";
-import { all } from "axios";
 
 const defaultIconSize = 24;
 
@@ -14,7 +13,7 @@ export const navigation = [
         title: "Doctor",
       },
     ],
-    allowedRoles: ["Doctor"],
+    allowedRoles: ["DOCTOR"],  // Keep allowedRoles for consistency
   },
   {
     key: "2",
@@ -26,12 +25,13 @@ export const navigation = [
         title: "Video Conference",
       },
     ],
-    allowedRoles: ["Doctor"],
+    allowedRoles: ["DOCTOR"], // Specify allowedRoles here as well
   },
   {
     key: "3",
     label: "Reports",
     icon: <Icon icon="mdi:report-line" style={{ fontSize: defaultIconSize }} />,
+    allowedRoles: ["DOCTOR"], // Parent-level allowedRoles
     children: [
       {
         key: "3.1",
@@ -45,7 +45,7 @@ export const navigation = [
             title: "Diagnostic",
           },
         ],
-        allowedRoles: ["Doctor"],
+        allowedRoles: ["DOCTOR"],
       },
       {
         key: "3.2",
@@ -59,7 +59,7 @@ export const navigation = [
             title: "Stress",
           },
         ],
-        allowedRoles: ["Doctor"],
+        allowedRoles: ["DOCTOR"],
       },
     ],
   },

@@ -13,10 +13,10 @@ const NavMenu = ({ navigation, defaultKey, handleMenuClick }) => {
     console.log("navigation", navigation);
     if (session) {
       const filtered = navigation.filter((nav) => {
-        if (nav.allowedRoles.includes(session?.user?.role?.role)) {
+        if (nav.allowedRoles.includes(session?.user?.role?.role_name)) {
           if (nav.children) {
             nav.children = nav.children.filter((child) =>
-              child?.allowedRoles?.includes(session?.user?.role?.role)
+              child?.allowedRoles?.includes(session?.user?.role?.role_name)
             );
           }
           return true;
