@@ -1,17 +1,23 @@
 package com.rp.thera.up.serviceImpl;
 
 import com.rp.thera.up.DTO.doctorDTO.CreateDoctorDTO;
+import com.rp.thera.up.DTO.doctorDTO.LoginDoctorDTO;
+import com.rp.thera.up.DTO.doctorDTO.SucessLoginDoctorDTO;
 import com.rp.thera.up.customException.DoctorException;
 import com.rp.thera.up.entity.Doctor;
 import com.rp.thera.up.repo.DoctorRepo;
 import com.rp.thera.up.repo.RoleRepo;
 import com.rp.thera.up.service.DoctorService;
 import org.modelmapper.ModelMapper;
+import org.modelmapper.TypeToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.List;
 
 @Service
 public class DoctorServiceImpl implements DoctorService {
@@ -69,5 +75,41 @@ public class DoctorServiceImpl implements DoctorService {
         doctor.setCreated_at(new Date(System.currentTimeMillis()));
 
         return doctorRepo.save(doctor);
+    }
+
+    @Override
+    public SucessLoginDoctorDTO doctorLogin(LoginDoctorDTO loginDoctorDTO) {
+
+        //all fields must be filled
+        if (loginDoctorDTO.getEmail() == null || loginDoctorDTO.getEmail().isEmpty() ||
+                loginDoctorDTO.getPassword() == null || loginDoctorDTO.getPassword().isEmpty()) {
+            throw new DoctorException("All fields must be filled", HttpStatus.BAD_REQUEST);
+        }
+
+        String email = loginDoctorDTO.getEmail();
+        String password = loginDoctorDTO.getPassword();
+
+        Doctor doctor = doctorRepo.findByEmail(email);
+
+        if(doctor == null){
+            throw new DoctorException("Doctor with email " + email + " not found", HttpStatus.NOT_FOUND);
+        }
+
+        //password must match password is saved encrypted
+        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+        boolean isValid = passwordEncoder.matches(password, doctor.getPassword());
+
+        if(!isValid){
+            throw new DoctorException("Invalid password", HttpStatus.UNAUTHORIZED);
+        }
+
+        SucessLoginDoctorDTO successLoginDoctorDTO = modelMapper.map(doctor, SucessLoginDoctorDTO.class);
+        successLoginDoctorDTO.setFirst_name(doctor.getFirst_name());
+        successLoginDoctorDTO.setLast_name(doctor.getLast_name());
+        successLoginDoctorDTO.setFull_name(doctor.getFull_name());
+        successLoginDoctorDTO.setEmail(doctor.getEmail());
+        successLoginDoctorDTO.setRole(doctor.getRole());
+
+        return successLoginDoctorDTO;
     }
 }
