@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:thera_up/pages/base_ui.dart';
+import 'package:thera_up/pages/register.dart';
 
 //shortcut for creating a stateless widget "stl"
 class Login extends StatelessWidget {
@@ -134,7 +136,9 @@ class Login extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child:ElevatedButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const BaseUi()));
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: Color(0xFF9DCEFF), // Button color
               shape: RoundedRectangleBorder(
@@ -161,7 +165,7 @@ class Login extends StatelessWidget {
             const Text('Don\'t have an account?'),
             TextButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/register');
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const Register()));
               },
               child: const Text('Register',
                 style: TextStyle(
