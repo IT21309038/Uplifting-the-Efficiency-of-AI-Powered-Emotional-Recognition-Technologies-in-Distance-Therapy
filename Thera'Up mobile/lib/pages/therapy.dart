@@ -35,154 +35,18 @@ class _TherapyState extends State<Therapy> {
     return Scaffold(
       appBar: appBar(),
       backgroundColor: Colors.white,
-      body: ListView(
-        children: [
-          const SizedBox(height: 20),
-          _scheduleNow(),
-          const SizedBox(height: 30),
-          _upComing(),
-          const SizedBox(height: 30,),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(padding: EdgeInsets.only(left: 20),
-                child:
-                Text(
-                  "Past Therapies",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              SizedBox(height: 20),
-              ListView.separated(
-                shrinkWrap: true,
-                padding: EdgeInsets.only(left: 20, right: 20),
-                itemBuilder: (context, index) {
-                  return GestureDetector(
-                    onTap: () {
-                      if (pastTherapies[index].rating.isEmpty) {
-                        _showRatingDialog(context, index);
-                      }
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Color(0xff1D1617).withOpacity(0.1),
-                            offset: Offset(0, 10),
-                            spreadRadius: 0,
-                            blurRadius: 40,
-                          ),
-                        ],
-                      ),
-                      child: Padding(
-                        padding: EdgeInsets.all(20.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(height: 10),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                Text(
-                                  pastTherapies[index].therapist,
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const Spacer(),
-                                Chip(
-                                  label: Text(
-                                    pastTherapies[index].status,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  backgroundColor: pastTherapies[index]
-                                      .status == 'Completed'
-                                      ? Colors.green
-                                      : pastTherapies[index].status ==
-                                      'Not completed'
-                                      ? Colors.red
-                                      : pastTherapies[index].status == 'N/A'
-                                      ? Colors.grey
-                                      : pastTherapies[index].status == 'Ongoing'
-                                      ? Colors.amber
-                                      : Colors.blue,
-                                  shape: StadiumBorder(
-                                    side: BorderSide
-                                        .none, // Ensures no visible border
-                                  ),
-                                ),
-
-                              ],
-                            ),
-                            SizedBox(height: 10),
-                            Text(
-                              pastTherapies[index].date,
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            SizedBox(height: 10),
-                            Row(
-                              children: [
-                                Text(
-                                  pastTherapies[index].duration + '',
-                                  style: TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                const Spacer(),
-                                Row(
-                                  children: [
-                                    const Icon(Icons.star, color: Colors.amber,
-                                        size: 18),
-                                    // Star icon
-                                    const SizedBox(width: 4),
-                                    // Space between star and text
-                                    Text(
-                                      pastTherapies[index].rating.isEmpty
-                                          ? 'Rate Therapy'
-                                          : pastTherapies[index].rating
-                                          .toString(), // Example rating value
-                                      style: const TextStyle(
-                                        color: Colors.grey,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
-                separatorBuilder: (context, index) {
-                  return SizedBox(height: 25);
-                },
-                itemCount: pastTherapies.length,
-              )
-            ],
-          )
-        ],
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            _scheduleNow(),
+            const SizedBox(height: 30),
+            _upComing(),
+            const SizedBox(height: 30,),
+            _pastTherapies(),
+            const SizedBox(height: 30,),
+          ],
+        ),
       ),
     );
   }
@@ -342,71 +206,226 @@ class _TherapyState extends State<Therapy> {
     );
   }
 
+  Column _pastTherapies(){
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(padding: EdgeInsets.only(left: 20),
+          child:
+          Text(
+            "Past Therapies",
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        SizedBox(height: 20),
+        ListView.separated(
+          shrinkWrap: true,
+          physics: NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.only(left: 20, right: 20),
+          itemBuilder: (context, index) {
+            return GestureDetector(
+              onTap: () {
+                if (pastTherapies[index].rating.isEmpty) {
+                  _showRatingDialog(context, index);
+                }
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0xff1D1617).withOpacity(0.1),
+                      offset: Offset(0, 10),
+                      spreadRadius: 0,
+                      blurRadius: 40,
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Text(
+                            pastTherapies[index].therapist,
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const Spacer(),
+                          Chip(
+                            label: Text(
+                              pastTherapies[index].status,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            backgroundColor: pastTherapies[index]
+                                .status == 'Completed'
+                                ? Colors.green
+                                : pastTherapies[index].status ==
+                                'Not completed'
+                                ? Colors.red
+                                : pastTherapies[index].status == 'N/A'
+                                ? Colors.grey
+                                : pastTherapies[index].status ==
+                                'Ongoing'
+                                ? Colors.amber
+                                : Colors.blue,
+                            shape: StadiumBorder(
+                              side: BorderSide
+                                  .none, // Ensures no visible border
+                            ),
+                          ),
+
+                        ],
+                      ),
+                      SizedBox(height: 10),
+                      Text(
+                        pastTherapies[index].date,
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Text(
+                            pastTherapies[index].duration + '',
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const Spacer(),
+                          Row(
+                            children: [
+                              const Icon(
+                                  Icons.star, color: Colors.amber,
+                                  size: 18),
+                              // Star icon
+                              const SizedBox(width: 4),
+                              // Space between star and text
+                              Text(
+                                pastTherapies[index].rating.isEmpty
+                                    ? 'Rate Therapy'
+                                    : pastTherapies[index].rating
+                                    .toString(), // Example rating value
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+          separatorBuilder: (context, index) {
+            return SizedBox(height: 25);
+          },
+          itemCount: pastTherapies.length,
+        )
+      ],
+    );
+  }
+
   void _showRatingDialog(BuildContext context, int index) {
     double selectedRating = 0.0; // Initialize the selected rating
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text(
-            'Rate Your Therapy',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: Container(
-            width: 300, // Set the desired width
-            height: 150, // Set the desired height
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 20,),
-                const Text(
-                  'Please rate your experience:',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w400,
-                  ),
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text(
+                'Rate Your Therapy',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
                 ),
-                const SizedBox(height: 30),
-                // Row for Star Ratings
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(5, (starIndex) {
-                    return IconButton(
-                      onPressed: () {
-                        selectedRating = (starIndex + 1).toDouble(); // Set rating
-                      },
-                      icon: Icon(
-                        Icons.star,
-                        color: starIndex < selectedRating ? Colors.amber : Colors.grey,
-                        size: 30,
+              ),
+              content: Container(
+                width: 300, // Set the desired width
+                height: 150, // Set the desired height
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Please rate your experience:',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w400,
                       ),
-                    );
-                  }),
+                    ),
+                    const SizedBox(height: 30),
+                    // Row for Star Ratings
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (starIndex) {
+                        return IconButton(
+                          onPressed: () {
+                            setState(() {
+                              selectedRating = (starIndex + 1).toDouble();
+                            });
+                          },
+                          icon: Icon(
+                            Icons.star,
+                            color: starIndex < selectedRating
+                                ? Colors.amber
+                                : Colors.grey,
+                            size: 30,
+                          ),
+                        );
+                      }),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context)
+                        .pop(); // Close the dialog without saving
+                  },
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    // Save the rating
+                    pastTherapies[index].rating = selectedRating.toString();
+                    Navigator.of(context).pop(); // Close the dialog
+                    // Optionally, you can call setState() here to refresh the UI
+                  },
+                  child: const Text('Submit'),
                 ),
               ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog without saving
-              },
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                // Save the rating
-                pastTherapies[index].rating = selectedRating.toString();
-                Navigator.of(context).pop(); // Close the dialog
-                // Optionally, you can call setState() here to refresh the UI
-              },
-              child: const Text('Submit'),
-            ),
-          ],
+            );
+          },
         );
       },
     );
