@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:thera_up/pages/activity.dart';
 import 'package:thera_up/pages/home.dart';
 import 'package:thera_up/pages/profile.dart';
+import 'package:thera_up/pages/schedule.dart';
 import 'package:thera_up/pages/therapy.dart';
 
 class BaseUi extends StatefulWidget {
@@ -59,5 +60,25 @@ class _HomePageState extends State<BaseUi> {
         onTap: _onItemTapped,
       ),
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Listen for the result from the Schedule page
+      ModalRoute.of(context)?.addScopedWillPopCallback(() async {
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const Schedule()),
+        );
+        if (result != null && result is int) {
+          setState(() {
+            _selectedIndex = result;
+          });
+        }
+        return true;
+      });
+    });
   }
 }

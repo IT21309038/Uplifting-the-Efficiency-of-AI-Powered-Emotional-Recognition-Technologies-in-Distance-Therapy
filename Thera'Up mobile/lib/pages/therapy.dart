@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:thera_up/models/pastT_model.dart';
 import 'package:thera_up/models/upCommingT_model.dart';
+import 'package:thera_up/pages/schedule.dart';
 
 class Therapy extends StatefulWidget {
    Therapy({Key? key}) : super(key: key);
@@ -71,7 +72,14 @@ class _TherapyState extends State<Therapy> {
   Column _scheduleNow() {
     return Column(
       children: [
-        Container(
+      GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const Schedule()),
+          );
+        },
+        child: Container(
           height: 100,
           margin: EdgeInsets.only(left: 20, right: 20),
           decoration: BoxDecoration(
@@ -100,6 +108,7 @@ class _TherapyState extends State<Therapy> {
             ),
           ),
         ),
+      ),
       ],
     );
   }
