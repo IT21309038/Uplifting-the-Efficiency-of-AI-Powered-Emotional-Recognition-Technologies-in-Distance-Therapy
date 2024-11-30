@@ -51,66 +51,128 @@ class _ScheduleState extends State<ScheduleSecond> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: 30),
               Padding(
                 padding: EdgeInsets.only(left: 20),
                 child: Text(
                   'Physical Well-being',
                   style: TextStyle(
                     color: Colors.black,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-              SizedBox(height: 20),
+              SizedBox(height: 30),
               Text(
                 "How many hours of sleep do you get each night?",
                 style: TextStyle(color: Colors.black, fontWeight: FontWeight.w500),
               ),
               _sleepingDropdown(),
-              SizedBox(height: 10),
+              SizedBox(height: 20),
               Text(
                 "How often do you feel tired or fatigued?",
                 style: TextStyle(color: Colors.black, fontWeight: FontWeight.w500),
               ),
               _appetiteDropDown(),
-              SizedBox(height: 10),
+              SizedBox(height: 20),
               Text(
                 "How often do you feel overwhelmed or unable to cope?",
                 style: TextStyle(color: Colors.black, fontWeight: FontWeight.w500),
               ),
               _feelOverWhelmed(),
-              SizedBox(height: 10),
+              SizedBox(height: 20),
               Text(
                 "How often do you feel irritable or angry?",
                 style: TextStyle(color: Colors.black, fontWeight: FontWeight.w500),
               ),
               _irritability(),
-              SizedBox(height: 10),
+              SizedBox(height: 20),
               Text(
                 "How often do you have trouble focusing or concentrating?",
                 style: TextStyle(color: Colors.black, fontWeight: FontWeight.w500),
               ),
               _focus(),
-              SizedBox(height: 10),
+              SizedBox(height: 20),
               Text(
                 "How often do you have trouble remembering things?",
                 style: TextStyle(color: Colors.black, fontWeight: FontWeight.w500),
               ),
               _memory(),
-              SizedBox(height: 10),
+              SizedBox(height: 20),
               Text(
                 "How often do you avoid social situations or withdraw from others?",
                 style: TextStyle(color: Colors.black, fontWeight: FontWeight.w500),
               ),
               _socialWithdrawal(),
-              SizedBox(height: 10),
+              SizedBox(height: 20),
               Text(
                 "How often do you engage in physical activity?",
                 style: TextStyle(color: Colors.black, fontWeight: FontWeight.w500),
               ),
               _physicalActivity(),
+              SizedBox(height: 20),
+              Align(
+                alignment: Alignment.centerRight,
+                child: GestureDetector(
+                  onTap: () {
+                    if (selectedAppetite != null &&
+                        selectedSleepHours != null &&
+                        selectedIrritability != null &&
+                        selectedMemory != null &&
+                        selectedPhysicalActivity != null &&
+                        selectedIrritability != null &&
+                        selectedSocialWithdrawal != null &&
+                        selectedFocus != null
+                    ) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => ScheduleSecond()),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Please fill all the fields'),
+                        ),
+                      );
+                    }
+                  },
+                  child: Container(
+                    height: 45,
+                    width: 100,
+                    child: Center(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Next',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(width: 8), // Space between text and icon
+                          SvgPicture.asset(
+                            'assets/icons/arrow-right.svg', // Path to your arrow-right icon
+                            height: 20,
+                            width: 20,
+                            color: Colors.white,
+                          ),
+                        ],
+                      ),
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                      gradient: LinearGradient(
+                        colors: [
+                          Color(0xff9DCEFF),
+                          Color(0xff92A3FD),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -277,7 +339,7 @@ class _ScheduleState extends State<ScheduleSecond> {
         height: 20,
         width: 20,
       ),
-      value: selectedOverwhelmed,
+      value: selectedIrritability,
       items: frequency.map((String status) {
         return DropdownMenuItem<String>(
           value: status,
@@ -286,7 +348,7 @@ class _ScheduleState extends State<ScheduleSecond> {
       }).toList(),
       onChanged: (value) {
         setState(() {
-          selectedOverwhelmed = value;
+          selectedIrritability = value;
         });
       },
     );
@@ -312,7 +374,7 @@ class _ScheduleState extends State<ScheduleSecond> {
         height: 20,
         width: 20,
       ),
-      value: selectedOverwhelmed,
+      value: selectedFocus,
       items: frequency.map((String status) {
         return DropdownMenuItem<String>(
           value: status,
@@ -321,7 +383,7 @@ class _ScheduleState extends State<ScheduleSecond> {
       }).toList(),
       onChanged: (value) {
         setState(() {
-          selectedOverwhelmed = value;
+          selectedFocus = value;
         });
       },
     );
@@ -347,7 +409,7 @@ class _ScheduleState extends State<ScheduleSecond> {
         height: 20,
         width: 20,
       ),
-      value: selectedOverwhelmed,
+      value: selectedMemory,
       items: frequency.map((String status) {
         return DropdownMenuItem<String>(
           value: status,
@@ -356,7 +418,7 @@ class _ScheduleState extends State<ScheduleSecond> {
       }).toList(),
       onChanged: (value) {
         setState(() {
-          selectedOverwhelmed = value;
+          selectedMemory = value;
         });
       },
     );
@@ -382,7 +444,7 @@ class _ScheduleState extends State<ScheduleSecond> {
         height: 20,
         width: 20,
       ),
-      value: selectedOverwhelmed,
+      value: selectedSocialWithdrawal,
       items: frequency.map((String status) {
         return DropdownMenuItem<String>(
           value: status,
@@ -391,7 +453,7 @@ class _ScheduleState extends State<ScheduleSecond> {
       }).toList(),
       onChanged: (value) {
         setState(() {
-          selectedOverwhelmed = value;
+          selectedSocialWithdrawal = value;
         });
       },
     );
@@ -417,7 +479,7 @@ class _ScheduleState extends State<ScheduleSecond> {
         height: 20,
         width: 20,
       ),
-      value: selectedOverwhelmed,
+      value: selectedPhysicalActivity,
       items: frequency.map((String status) {
         return DropdownMenuItem<String>(
           value: status,
@@ -426,7 +488,7 @@ class _ScheduleState extends State<ScheduleSecond> {
       }).toList(),
       onChanged: (value) {
         setState(() {
-          selectedOverwhelmed = value;
+          selectedPhysicalActivity = value;
         });
       },
     );

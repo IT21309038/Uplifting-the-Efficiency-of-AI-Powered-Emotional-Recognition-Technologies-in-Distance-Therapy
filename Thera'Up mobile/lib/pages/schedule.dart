@@ -106,16 +106,16 @@ class _ScheduleState extends State<Schedule> {
               SizedBox(height: 10),
               _religiousOrCulturalFactorsDropdown(),
               SizedBox(height: 30),
-              Center(
-                child: ElevatedButton(
-                  onPressed: () {
+              Align(
+                alignment: Alignment.centerRight,
+                child: GestureDetector(
+                  onTap: () {
                     if (selectedStatus != null &&
                         selectedCivilStatus != null &&
                         selectedLivingSituation != null &&
                         selectedFinancialStatus != null &&
                         selectedSocialSupport != null &&
-                        selectedReligiousOrCulturalFactors != null &&
-                        fullNameController.text.isNotEmpty) {
+                        selectedReligiousOrCulturalFactors != null) {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => ScheduleSecond()),
@@ -128,9 +128,43 @@ class _ScheduleState extends State<Schedule> {
                       );
                     }
                   },
-                  child: Text('Next'),
+                  child: Container(
+                    height: 45,
+                    width: 100,
+                    child: Center(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Next',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(width: 8), // Space between text and icon
+                          SvgPicture.asset(
+                            'assets/icons/arrow-right.svg', // Path to your arrow-right icon
+                            height: 20,
+                            width: 20,
+                            color: Colors.white,
+                          ),
+                        ],
+                      ),
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                      gradient: LinearGradient(
+                        colors: [
+                          Color(0xff9DCEFF),
+                          Color(0xff92A3FD),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              )
             ],
           ),
         ),
