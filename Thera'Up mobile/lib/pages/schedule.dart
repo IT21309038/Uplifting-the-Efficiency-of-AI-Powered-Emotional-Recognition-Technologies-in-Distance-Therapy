@@ -76,19 +76,54 @@ class _ScheduleState extends State<Schedule> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: appBar(context),
+      backgroundColor: Colors.white,
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Card(
+                margin: EdgeInsets.all(10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                elevation: 5,
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Important Notice',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      Text(
+                        'This form is solely for the purpose of scheduling a meeting and providing your therapist with a preliminary report to better understand your situation.\n\n'
+                            'Your responses will remain confidential and are used only to enhance the effectiveness of your session.',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 20),
               Padding(
                 padding: EdgeInsets.only(left: 20),
                 child: Text(
                   'General Information',
                   style: TextStyle(
                     color: Colors.black,
-                    fontSize: 18,
+                    fontSize: 20,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -110,24 +145,30 @@ class _ScheduleState extends State<Schedule> {
                 alignment: Alignment.centerRight,
                 child: GestureDetector(
                   onTap: () {
-                    if (selectedStatus != null &&
-                        selectedCivilStatus != null &&
-                        selectedLivingSituation != null &&
-                        selectedFinancialStatus != null &&
-                        selectedSocialSupport != null &&
-                        selectedReligiousOrCulturalFactors != null) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => ScheduleSecond()),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Please fill all the fields'),
-                        ),
-                      );
-                    }
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ScheduleSecond()),
+                    );
                   },
+                  // onTap: () {
+                  //   if (selectedStatus != null &&
+                  //       selectedCivilStatus != null &&
+                  //       selectedLivingSituation != null &&
+                  //       selectedFinancialStatus != null &&
+                  //       selectedSocialSupport != null &&
+                  //       selectedReligiousOrCulturalFactors != null) {
+                  //     Navigator.push(
+                  //       context,
+                  //       MaterialPageRoute(builder: (context) => ScheduleSecond()),
+                  //     );
+                  //   } else {
+                  //     ScaffoldMessenger.of(context).showSnackBar(
+                  //       SnackBar(
+                  //         content: Text('Please fill all the fields'),
+                  //       ),
+                  //     );
+                  //   }
+                  // },
                   child: Container(
                     height: 45,
                     width: 100,

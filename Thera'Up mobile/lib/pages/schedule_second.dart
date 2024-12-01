@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:thera_up/pages/appointment_suggestions.dart';
 
 class ScheduleSecond extends StatefulWidget {
   const ScheduleSecond({super.key});
@@ -45,6 +46,7 @@ class _ScheduleState extends State<ScheduleSecond> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: appBar(context),
+      backgroundColor: Colors.white,
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -115,27 +117,33 @@ class _ScheduleState extends State<ScheduleSecond> {
                 alignment: Alignment.centerRight,
                 child: GestureDetector(
                   onTap: () {
-                    if (selectedAppetite != null &&
-                        selectedSleepHours != null &&
-                        selectedIrritability != null &&
-                        selectedMemory != null &&
-                        selectedPhysicalActivity != null &&
-                        selectedIrritability != null &&
-                        selectedSocialWithdrawal != null &&
-                        selectedFocus != null
-                    ) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => ScheduleSecond()),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Please fill all the fields'),
-                        ),
-                      );
-                    }
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => AppointmentSuggestions()),
+                    );
                   },
+                  // onTap: () {
+                  //   if (selectedAppetite != null &&
+                  //       selectedSleepHours != null &&
+                  //       selectedIrritability != null &&
+                  //       selectedMemory != null &&
+                  //       selectedPhysicalActivity != null &&
+                  //       selectedIrritability != null &&
+                  //       selectedSocialWithdrawal != null &&
+                  //       selectedFocus != null
+                  //   ) {
+                  //     Navigator.push(
+                  //       context,
+                  //       MaterialPageRoute(builder: (context) => ScheduleSecond()),
+                  //     );
+                  //   } else {
+                  //     ScaffoldMessenger.of(context).showSnackBar(
+                  //       SnackBar(
+                  //         content: Text('Please fill all the fields'),
+                  //       ),
+                  //     );
+                  //   }
+                  // },
                   child: Container(
                     height: 45,
                     width: 100,
