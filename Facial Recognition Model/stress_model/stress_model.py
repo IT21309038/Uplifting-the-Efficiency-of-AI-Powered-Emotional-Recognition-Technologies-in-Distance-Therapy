@@ -12,8 +12,8 @@ from sklearn.metrics import classification_report, confusion_matrix
 import seaborn as sns
 
 # Path to the dataset
-dataset_train_dir = 'dataset/fer2013/train'
-dataset_test_dir = 'dataset/fer2013/test'
+dataset_train_dir = '../dataset/fer2013/train'
+dataset_test_dir = '../dataset/fer2013/test'
 
 # Emotion-to-Stress Mapping
 emotion_to_stress = {
