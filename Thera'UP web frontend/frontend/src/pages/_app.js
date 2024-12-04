@@ -194,11 +194,7 @@ const App = ({ Component, pageProps: { session, ...pageProps } }) => {
                       }
                     >
                       <Image
-                        src={
-                          collapsed
-                            ? "/images/logo/brandLogo-NEW.png"
-                            : "/images/logo/NEWLOGO.png"
-                        }
+                        src={"/images/logo/NEWLOGO.png"}
                         alt="logo"
                         width="75%"
                         preview={false}
@@ -214,7 +210,7 @@ const App = ({ Component, pageProps: { session, ...pageProps } }) => {
                             mt: 1,
                           }}
                         >
-                          Ticketing System
+                          e-Therapy Portal
                         </Typography>
                       )}
                     </Box>
@@ -266,24 +262,13 @@ const App = ({ Component, pageProps: { session, ...pageProps } }) => {
                           separator=">"
                           items={breadcrumb}
                         />
-                        {(envType === "DEV" || envType === "UAT") && (
-                          <Alert
-                            severity="error"
-                            sx={{ my: 1.5 }}
-                            variant="filled"
-                          >
-                            You are in {envType} mode on <em>{hostName}</em> and
-                            using{" "}
-                            <em>{apiURL.replace(/https?:\/\/|\/.*/g, "")}</em>
-                          </Alert>
-                        )}
                       </Box>
                       <Component {...pageProps} />
                     </Content>
                     <Footer style={{ textAlign: "center" }}>
-                      KIU Ticketing System ©{new Date().getFullYear()}. Made
-                      with ❤️ by&nbsp;
-                      <a href="#">Software Engineering Division - KIU</a>
+                      RP 24-25J-126©{new Date().getFullYear()}. Made with ❤️
+                      by&nbsp;
+                      <a href="#">24-25J-126 Team</a>
                     </Footer>
                   </Layout>
                 </Layout>

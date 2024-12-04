@@ -6,9 +6,9 @@ import CustomHead from '@/utils/CustomHead'
 const Home = () => {
   return (
     <>
-    <CustomHead title="Home" />
+    <CustomHead title="Doctor" />
     <Grid2>
-      <h1>Home</h1>
+      <h1>Doctor Profile</h1>
     </Grid2>
     </>
   )

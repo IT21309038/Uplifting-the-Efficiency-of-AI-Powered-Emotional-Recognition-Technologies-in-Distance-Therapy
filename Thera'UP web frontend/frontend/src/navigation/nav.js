@@ -6,8 +6,8 @@ export const navigation = [
   {
     key: "1",
     label: "Doctor",
-    icon: <Icon icon="ic:round-home" style={{ fontSize: defaultIconSize }} />,
-    path: "/Doctor",
+    icon: <Icon icon="hugeicons:doctor-01" style={{ fontSize: defaultIconSize }} />,
+    path: "/",
     breadcrumb: [
       {
         title: "Doctor",
@@ -42,7 +42,7 @@ export const navigation = [
             title: "Reports",
           },
           {
-            title: "Diagnostic",
+            title: "Diagnostic Report",
           },
         ],
         allowedRoles: ["DOCTOR"],
@@ -56,7 +56,7 @@ export const navigation = [
             title: "Reports",
           },
           {
-            title: "Stress",
+            title: "Stress Report",
           },
         ],
         allowedRoles: ["DOCTOR"],
