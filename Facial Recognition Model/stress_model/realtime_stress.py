@@ -37,7 +37,7 @@ if not webcam_video_stream.isOpened():
 
 # Initialize Dlib face detector and shape predictor
 face_detector = dlib.get_frontal_face_detector()
-shape_predictor = dlib.shape_predictor("pre models/shape_predictor_5_face_landmarks.dat")
+shape_predictor = dlib.shape_predictor("../pre models/shape_predictor_5_face_landmarks.dat")
 
 # Parameters for windowing
 fps = 30  # Assuming ~30 FPS
@@ -47,6 +47,7 @@ frames_per_window = fps * window_duration
 # Buffers and data storage
 current_window_emotions = deque(maxlen=frames_per_window)
 stress_levels = []  # Store stress levels for the session
+window_emotions = []  # Store emotions for the current window
 current_stress_level = 0  # Start at a baseline stress level
 
 while True:
@@ -92,12 +93,18 @@ while True:
 
         # Map the dominant emotion to stress
         if window_dominant_emotion == "Neutral":
-            # Apply decay if the dominant emotion is neutral
-            current_stress_level = max(0, current_stress_level - decay_factor)
+            # Apply decay when transitioning toward neutral (both from positive and negative levels)
+            if current_stress_level > 0:  # Reduce positive stress
+                current_stress_level = max(0, current_stress_level - decay_factor)
+            elif current_stress_level < 0:  # Reduce negative stress (move toward neutral)
+                current_stress_level = min(0, current_stress_level + decay_factor)
         else:
             # Adjust stress level based on the mapped stress value
             stress_change = emotion_to_stress[window_dominant_emotion]
             current_stress_level += stress_change
+
+        if window_dominant_emotion in emotion_labels:
+            window_emotions.append(window_dominant_emotion)
 
         # Store the stress level
         stress_levels.append(current_stress_level)
@@ -148,13 +155,14 @@ plt.show()
 
 
 # Generate Emotion Fluctuation Plot
-plt.figure(figsize=(10, 6))
-emotion_indices = [emotion_labels.index(e) for e in Counter(current_window_emotions)]
-plt.step(range(1, len(emotion_indices) + 1), emotion_indices, where='mid', color='r', label='Emotion Fluctuation')
-plt.yticks(range(len(emotion_labels)), emotion_labels)
-plt.title("Emotion Fluctuation Over Session")
-plt.xlabel("Time (Minutes)")
-plt.ylabel("Dominant Emotion")
-plt.grid(True)
-plt.legend()
-plt.show()
+if window_emotions:
+    plt.figure(figsize=(10, 6))
+    emotion_indices = [emotion_labels.index(e) for e in window_emotions]
+    plt.step(range(1, len(emotion_indices) + 1), emotion_indices, where='mid', color='r', label='Emotion Fluctuation')
+    plt.yticks(range(len(emotion_labels)), emotion_labels)
+    plt.title("Emotion Fluctuation Over Session")
+    plt.xlabel("Time (minutes)")
+    plt.ylabel("Dominant Emotion")
+    plt.grid(True)
+    plt.legend()
+    plt.show()
