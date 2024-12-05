@@ -3,10 +3,16 @@ using UnityEngine;
 public class PlayerInteraction : MonoBehaviour
 {
     public int score = 0;
+    private StressCalculator stressCalculator;
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        
+        stressCalculator = FindAnyObjectByType<StressCalculator>();
+        if (stressCalculator == null)
+        {
+            Debug.LogError("StressCalculator not found in the scene!");
+        }
     }
 
     // Update is called once per frame
@@ -17,17 +23,34 @@ public class PlayerInteraction : MonoBehaviour
 
     void OnMouseDown()
     {
-        if (this == null || gameObject == null) return; // Check if the object still exists
+        BallBehaviorReaction ballBehaviorReaction = GetComponent<BallBehaviorReaction>();
 
-        if (gameObject.CompareTag("Catchable"))
+        if (ballBehaviorReaction != null)
         {
-            score++;
-        }
-        else if (gameObject.CompareTag("Avoidable"))
-        {
-            score--;
-        }
+            float reactionTime = Time.time - ballBehaviorReaction.spawnTime; // Calculate reaction time
+            Debug.Log($"Reaction Time: {reactionTime:F2} seconds");
 
-        Destroy(gameObject); // Safely destroy the object
+            if (gameObject.CompareTag("Catchable"))
+            {
+                Debug.Log("Green ball caught!");
+                if (stressCalculator != null)
+                {
+                    stressCalculator.greenCaught++;
+                    stressCalculator.reactionTimes.Add(reactionTime); // Add to reaction times
+                }
+            }
+            else if (gameObject.CompareTag("Avoidable"))
+            {
+                Debug.Log("Red ball caught!");
+                if (stressCalculator != null)
+                {
+                    stressCalculator.redCaught++;
+                    stressCalculator.reactionTimes.Add(reactionTime); // Add to reaction times
+                }
+            }
+
+            Destroy(gameObject); // Destroy the ball
+        }
+        
     }
 }

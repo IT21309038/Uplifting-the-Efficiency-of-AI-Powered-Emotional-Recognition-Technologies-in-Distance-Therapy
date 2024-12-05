@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 5524587275456672114}
   - component: {fileID: 3781270421619756071}
   - component: {fileID: 1035067499685186480}
+  - component: {fileID: 5392330468720835955}
   m_Layer: 0
   m_Name: AvoidableObject
   m_TagString: Avoidable
@@ -166,3 +167,16 @@ CircleCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
   m_Radius: 0.5
+--- !u!114 &5392330468720835955
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7789242885121199283}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 349af7e9277f7a44e865c6168f0ce380, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  score: 0
