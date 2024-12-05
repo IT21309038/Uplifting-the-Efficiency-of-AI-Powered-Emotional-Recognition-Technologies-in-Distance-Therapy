@@ -10,7 +10,7 @@ from librosa.effects import preemphasis
 from fastapi.middleware.cors import CORSMiddleware
 
 # Load the saved model
-model = load_model("speech_emotion_recognition_model.h5")
+model = load_model("emotion_recognition_model.h5")
 
 # Define a FastAPI app
 app = FastAPI()
