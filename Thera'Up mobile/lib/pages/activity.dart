@@ -8,7 +8,7 @@ class Activity extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: appBar(),
-      backgroundColor: Colors.white,
+      backgroundColor: Color(0xFFFAF9F6),
       body: ActivitiesOverview(),
     );
   }
@@ -20,12 +20,12 @@ class Activity extends StatelessWidget {
         'Activity Page',
         style: TextStyle(
           color: Colors.black,
-          fontSize: 22,
+          fontSize: 20,
           fontWeight: FontWeight.bold,
         ),
       ),
       automaticallyImplyLeading: false,
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.transparent,
       elevation: 0,
     );
   }
@@ -40,10 +40,10 @@ class _ActivitiesOverviewState extends State<ActivitiesOverview> {
   int totalActivitiesCompleted = 12; // Example data
   String totalTimeSpent = "5h 30m"; // Example data
   List<ActivityModel> availableActivities = [
-    ActivityModel("Reading", 0.7),
-    ActivityModel("Meditation", 0.4),
-    ActivityModel("Yoga", 0.9),
-    ActivityModel("Writing", 0.3),
+    ActivityModel("Reading", 0.7, Icons.book),
+    ActivityModel("Meditation", 0.4, Icons.self_improvement),
+    ActivityModel("Yoga", 0.9, Icons.spa),
+    ActivityModel("Writing", 0.3, Icons.edit),
   ];
 
   @override
@@ -63,17 +63,20 @@ class _ActivitiesOverviewState extends State<ActivitiesOverview> {
       padding: EdgeInsets.all(20.0),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF5F9EA0), Color(0xFF9DCEFF)],
+          colors: [
+            Color(0xFFCEE6FF), // Soft pastel blue
+            Color(0xFFE2C3F8), // Light lavender (complementary to blue)
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
-            blurRadius: 10,
-            spreadRadius: 2,
-            offset: Offset(0, 4),
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 20,
+            spreadRadius: 5,
+            offset: Offset(0, 8),
           ),
         ],
       ),
@@ -83,8 +86,8 @@ class _ActivitiesOverviewState extends State<ActivitiesOverview> {
           Text(
             "Overview",
             style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
+              fontSize: 26,
+              fontWeight: FontWeight.w700,
               color: Colors.white,
             ),
           ),
@@ -101,26 +104,35 @@ class _ActivitiesOverviewState extends State<ActivitiesOverview> {
     );
   }
 
+
   Widget _overviewCard(String title, String value) {
     return Container(
       width: MediaQuery.of(context).size.width / 2.5,
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            spreadRadius: 3,
+            offset: Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: TextStyle(fontSize: 16, color: Colors.black54),
+            style: TextStyle(fontSize: 18, color: Colors.black54),
           ),
           const SizedBox(height: 10),
           Text(
             value,
             style: TextStyle(
-              fontSize: 22,
+              fontSize: 24,
               fontWeight: FontWeight.bold,
               color: Colors.black,
             ),
@@ -137,8 +149,8 @@ class _ActivitiesOverviewState extends State<ActivitiesOverview> {
         Text(
           "Available Activities",
           style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
+            fontSize: 26,
+            fontWeight: FontWeight.w700,
             color: Colors.black,
           ),
         ),
@@ -165,51 +177,65 @@ class _ActivitiesOverviewState extends State<ActivitiesOverview> {
           MaterialPageRoute(
             builder: (context) => PerActivity(
               activityName: activity.name,
-              allocatedTime: activity.progress * 2, // Example: max 2 hours
-              location: "Room 101", // Example location
+              allocatedTime: activity.progress * 2,
+              location: "Room 101",
             ),
           ),
         );
       },
       child: AnimatedContainer(
         duration: Duration(milliseconds: 300),
-        padding: EdgeInsets.all(15),
+        padding: EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFFCEE6FF).withOpacity(1), // Soft pastel blue (fully opaque)
+              Color(0xFFFFFFFF).withOpacity(1), // White (fully opaque)
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           borderRadius: BorderRadius.circular(15),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.3),
-              blurRadius: 10,
-              spreadRadius: 2,
-              offset: Offset(0, 4),
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 15,
+              spreadRadius: 5,
+              offset: Offset(0, 8),
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Text(
-              activity.name,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: Colors.black,
-              ),
-            ),
-            const SizedBox(height: 10),
-            LinearProgressIndicator(
-              value: activity.progress,
-              backgroundColor: Colors.grey[200],
-              color: Color(0xff9DCEFF),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              "${(activity.progress * 100).toInt()}% completed",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w400,
-                color: Colors.grey,
+            Icon(activity.icon, color: Colors.black, size: 40),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    activity.name,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  LinearProgressIndicator(
+                    value: activity.progress,
+                    backgroundColor: Colors.grey[300],
+                    color: Color(0xffFFA726),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    "${(activity.progress * 100).toInt()}% completed",
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -222,6 +248,7 @@ class _ActivitiesOverviewState extends State<ActivitiesOverview> {
 class ActivityModel {
   final String name;
   final double progress;
+  final IconData icon;
 
-  ActivityModel(this.name, this.progress);
+  ActivityModel(this.name, this.progress, this.icon);
 }
