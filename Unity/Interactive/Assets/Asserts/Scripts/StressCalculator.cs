@@ -21,10 +21,12 @@ public class StressCalculator : MonoBehaviour
 
         // Stress Score formula
         float stressScore = (0.4f * averageReactionTime) + // Reaction Time
-                            (0.2f * missClicks) +         // Miss Clicks
+                                   
                             (0.3f * greenMissed) +        // Missed Green Balls
                             (0.4f * redCaught) -          // Red Balls Clicked
                             (0.2f * accuracyScore);       // Accuracy reduces stress
+
+        //(0.2f * missClicks) +  // Miss Clicks
 
         // Determine stress level
         string stressLevel = "Low Stress";

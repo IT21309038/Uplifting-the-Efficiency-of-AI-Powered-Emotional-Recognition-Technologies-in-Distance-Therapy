@@ -999,6 +999,7 @@ MonoBehaviour:
   greenCaught: 0
   redCaught: 0
   greenMissed: 0
+  missClicks: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

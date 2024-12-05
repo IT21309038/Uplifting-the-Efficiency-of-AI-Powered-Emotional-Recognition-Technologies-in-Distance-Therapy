@@ -6,7 +6,7 @@ public class BackgroundClickDetector : MonoBehaviour
 
     void Start()
     {
-        stressCalculator = FindObjectOfType<StressCalculator>();
+        stressCalculator = FindAnyObjectByType<StressCalculator>();
         if (stressCalculator == null)
         {
             Debug.LogError("StressCalculator not found in the scene!");
@@ -15,19 +15,29 @@ public class BackgroundClickDetector : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetMouseButtonDown(0))
+        // Detect mouse click
+        if (Input.GetMouseButtonDown(0)) // Left mouse button click
         {
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            RaycastHit2D hit = Physics2D.Raycast(ray.origin, ray.direction);
+            // Convert the mouse position to world space
+            Vector2 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 
-            if (hit.collider == null) // No object clicked
+            // Check if the click overlaps any collider
+            Collider2D hitCollider = Physics2D.OverlapPoint(mousePosition);
+
+            // Check if the click hit a valid object with "Catchable" or "Avoidable" tag
+            if (hitCollider != null && (hitCollider.CompareTag("Catchable") || hitCollider.CompareTag("Avoidable")))
+            {
+                Debug.Log($"Clicked on object: {hitCollider.gameObject.name} with tag: {hitCollider.tag}");
+                // Valid click on "Catchable" or "Avoidable"
+            }
+            else
             {
                 Debug.Log("Miss click detected!");
                 if (stressCalculator != null)
                 {
-                    stressCalculator.missClicks++;
+                    stressCalculator.missClicks++; // Increment miss click count
                 }
             }
         }
     }
-}
+   }

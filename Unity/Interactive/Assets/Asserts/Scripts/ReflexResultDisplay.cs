@@ -12,10 +12,12 @@ public class ResultsDisplay : MonoBehaviour
     void Start()
     {
         // Populate UI elements with results
-        errorRateText.text = $"Error Rate: {ResultsManager.ErrorRate * 100:F2}%";
-        averageReactionTimeText.text = $"Average Reaction Time: {ResultsManager.AverageReactionTime:F2}s";
-        missClicksText.text = $"Miss Clicks: {ResultsManager.MissClicks}";
-        stressScoreText.text = $"Stress Score: {ResultsManager.StressScore:F2}";
-        stressLevelText.text = $"Stress Level: {ResultsManager.StressLevel}";
+        errorRateText.text = $" {ResultsManager.ErrorRate * 100:F2}%";
+        averageReactionTimeText.text = $" {ResultsManager.AverageReactionTime:F2}s";
+        //missClicksText.text = $" {ResultsManager.MissClicks}";
+        stressScoreText.text = $" {ResultsManager.StressScore:F2}";
+        stressLevelText.text = $" {ResultsManager.StressLevel}";
+
+        Debug.Log($"Results Displayed!: { ResultsManager.StressScore}");
     }
 }
