@@ -6,14 +6,16 @@ export const navigation = [
   {
     key: "1",
     label: "Doctor",
-    icon: <Icon icon="hugeicons:doctor-01" style={{ fontSize: defaultIconSize }} />,
+    icon: (
+      <Icon icon="hugeicons:doctor-01" style={{ fontSize: defaultIconSize }} />
+    ),
     path: "/",
     breadcrumb: [
       {
         title: "Doctor",
       },
     ],
-    allowedRoles: ["DOCTOR"],  // Keep allowedRoles for consistency
+    allowedRoles: ["DOCTOR"], // Keep allowedRoles for consistency
   },
   {
     key: "2",
@@ -62,5 +64,33 @@ export const navigation = [
         allowedRoles: ["DOCTOR"],
       },
     ],
+  },
+  {
+    key: "4",
+    label: "Activities",
+    icon: (
+      <Icon icon="carbon:user-activity" style={{ fontSize: defaultIconSize }} />
+    ),
+    path: "/activities/test",
+    breadcrumb: [
+      {
+        title: "Activities",
+      },
+    ],
+    allowedRoles: ["DOCTOR"], // Keep allowedRoles for consistency
+  },
+  {
+    key: "5",
+    label: "Track Activities",
+    icon: (
+      <Icon icon="carbon:user-activity" style={{ fontSize: defaultIconSize }} />
+    ),
+    path: "/TrackActivities/viewAll",
+    breadcrumb: [
+      {
+        title: "Track Activities",
+      },
+    ],
+    allowedRoles: ["DOCTOR"], // Keep allowedRoles for consistency
   },
 ];
