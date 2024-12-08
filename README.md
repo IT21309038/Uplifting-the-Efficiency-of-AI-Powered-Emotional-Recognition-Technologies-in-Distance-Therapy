@@ -24,10 +24,11 @@ The repo includes sources codes of mobile and web application of Thera'UP Online
    git clone https://github.com/IT21309038/Uplifting-the-Efficiency-of-AI-Powered-Emotional-Recognition-Technologies-in-Distance-Therapy.git
    
 
-Open the Scenes folder in the Unity Editor.
+2. Open the Scenes folder in the Unity Editor: 
 Double-click on the scene file named StartScene.
 
-** 🎮 How to Play**
+
+3. 🎮 How to Play:
 Start the game by running the scene in the Unity Editor or exporting the build.
 Targets will appear randomly on the screen.
 Click on:
@@ -36,8 +37,8 @@ Avoid miss clicks (clicking on the background or other objects).
 The game ends when the timer runs out.
 Your final score and miss clicks are displayed on the results screen.
 
-💻 How to Build the Game
-Open the project in Unity.
-Go to File > Build Settings.
-Select your desired platform (e.g., Windows, macOS, WebGL).
-Click Build and choose a folder to export the build.
+4. 💻 How to Build the Game:
+- Open the project in Unity.
+- Go to File > Build Settings.
+- Select your desired platform (e.g., Windows, macOS, WebGL).
+- Click Build and choose a folder to export the build.
