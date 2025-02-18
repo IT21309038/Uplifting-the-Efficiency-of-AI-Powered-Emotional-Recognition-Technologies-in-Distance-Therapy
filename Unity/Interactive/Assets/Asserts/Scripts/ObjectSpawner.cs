@@ -35,11 +35,23 @@ public class ObjectSpawner : MonoBehaviour
         if (objectToSpawn != null)
         {
             Vector2 spawnPosition = new Vector2(Random.Range(spawnRange.x, spawnRange.y), 6f);
-            Instantiate(objectToSpawn, spawnPosition, Quaternion.identity);
-        }
-        else
-        {
-            Debug.LogWarning("Object to spawn is null!");
+            GameObject spawnedObject = Instantiate(objectToSpawn, spawnPosition, Quaternion.identity);
+
+            // Add the BallBehavior script
+            if (!spawnedObject.GetComponent<BallBehaviorReaction>())
+            {
+                spawnedObject.AddComponent<BallBehaviorReaction>();
+            }
+
+            // Assign appropriate tags
+            if (objectToSpawn == catchableObject)
+            {
+                spawnedObject.tag = "Catchable";
+            }
+            else if (objectToSpawn == avoidableObject)
+            {
+                spawnedObject.tag = "Avoidable";
+            }
         }
     }
 }
