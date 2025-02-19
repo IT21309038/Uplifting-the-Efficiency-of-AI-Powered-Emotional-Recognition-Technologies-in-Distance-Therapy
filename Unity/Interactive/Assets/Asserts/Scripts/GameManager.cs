@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
@@ -63,6 +64,7 @@ public class GameManager : MonoBehaviour
         if (stressCalculator != null)
         {
             stressCalculator.CalculateStressScore();
+            SceneManager.LoadScene("ResultsScene");
         }
     }
 }

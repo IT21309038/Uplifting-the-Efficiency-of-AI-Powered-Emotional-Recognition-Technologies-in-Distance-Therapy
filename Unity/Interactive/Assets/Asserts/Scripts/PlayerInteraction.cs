@@ -32,7 +32,6 @@ public class PlayerInteraction : MonoBehaviour
 
             if (gameObject.CompareTag("Catchable"))
             {
-                Debug.Log("Green ball caught!");
                 if (stressCalculator != null)
                 {
                     stressCalculator.greenCaught++;
@@ -41,7 +40,6 @@ public class PlayerInteraction : MonoBehaviour
             }
             else if (gameObject.CompareTag("Avoidable"))
             {
-                Debug.Log("Red ball caught!");
                 if (stressCalculator != null)
                 {
                     stressCalculator.redCaught++;

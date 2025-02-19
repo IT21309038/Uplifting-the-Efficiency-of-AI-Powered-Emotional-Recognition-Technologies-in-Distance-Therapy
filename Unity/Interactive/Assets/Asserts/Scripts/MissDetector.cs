@@ -18,7 +18,6 @@ public class MissDetector : MonoBehaviour
     {
         if (collision.CompareTag("Catchable"))
         {
-            Debug.Log("Green ball missed!");
             if (stressCalculator != null)
             {
                 stressCalculator.greenMissed++;

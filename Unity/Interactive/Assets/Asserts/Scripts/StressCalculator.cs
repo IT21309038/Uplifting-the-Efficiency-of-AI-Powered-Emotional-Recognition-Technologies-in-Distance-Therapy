@@ -20,10 +20,10 @@ public class StressCalculator : MonoBehaviour
         float accuracyScore = (float)greenCaught / (greenCaught + greenMissed);
 
         // Stress Score formula
-        float stressScore = (0.4f * averageReactionTime) +
-                            (0.3f * errorRate) -
-                            (0.2f * accuracyScore) +
-                            (0.1f * reactionTimeVariance);
+        float stressScore = (0.4f * averageReactionTime) + // Reaction Time
+                             (0.3f * greenMissed) +        // Missed Green Balls
+                             (0.4f * redCaught) -          // Red Balls Clicked
+                             (0.2f * accuracyScore);       // Accuracy reduces stress
 
         // Determine stress level
         string stressLevel = "Low Stress";
@@ -35,6 +35,12 @@ public class StressCalculator : MonoBehaviour
         {
             stressLevel = "Mildly Stressed";
         }
+
+        // Store results in ResultsManager
+        ResultsManager.ErrorRate = errorRate;
+        ResultsManager.AverageReactionTime = averageReactionTime;
+        ResultsManager.StressScore = stressScore;
+        ResultsManager.StressLevel = stressLevel;
 
         Debug.Log($"Stress Score: {stressScore:F2} ({stressLevel})");
     }
