@@ -18,7 +18,6 @@ dataset_test_dir = '../dataset/fer2013/test'
 # Emotion-to-Stress Mapping
 emotion_to_stress = {
     "Anger": 1.0,
-    "Contempt": 0.8,
     "Disgust": 0.7,
     "Fear": 0.9,
     "Happy": -0.5,
@@ -112,7 +111,7 @@ x = Dense(128, activation='relu')(x)
 x = Dropout(0.4)(x)
 
 # Outputs
-output_emotion = Dense(8, activation='softmax', name='emotion_output')(x)
+output_emotion = Dense(7, activation='softmax', name='emotion_output')(x)
 output_stress = Dense(1, activation='linear', name='stress_output')(x)
 
 # Model Definition
