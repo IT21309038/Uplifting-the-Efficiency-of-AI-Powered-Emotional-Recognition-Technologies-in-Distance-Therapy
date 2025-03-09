@@ -12,12 +12,11 @@ from collections import deque, Counter
 emotion_model = load_model("emotion_stress_model.h5")
 
 # Emotion labels (ensure these match the model's output order)
-emotion_labels = ["Anger", "Contempt", "Disgust", "Fear", "Happy", "Neutral", "Sad", "Surprise"]
+emotion_labels = ["Anger", "Disgust", "Fear", "Happy", "Neutral", "Sad", "Surprise"]
 
 # Stress Mapping based on emotions
 emotion_to_stress = {
     "Anger": 1.0,
-    "Contempt": 0.8,
     "Disgust": 0.7,
     "Fear": 0.9,
     "Happy": -0.5,
