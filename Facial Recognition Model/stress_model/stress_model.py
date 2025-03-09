@@ -228,3 +228,6 @@ print(classification_report(y_true, y_pred, target_names=test_data.class_indices
 # Save the Model
 model.save('emotion_stress_model.h5')
 print('Model saved successfully!')
+
+#model summary
+model.summary()
