@@ -6,14 +6,16 @@ export const navigation = [
   {
     key: "1",
     label: "Doctor",
-    icon: <Icon icon="hugeicons:doctor-01" style={{ fontSize: defaultIconSize }} />,
+    icon: (
+      <Icon icon="hugeicons:doctor-01" style={{ fontSize: defaultIconSize }} />
+    ),
     path: "/",
     breadcrumb: [
       {
         title: "Doctor",
       },
     ],
-    allowedRoles: ["DOCTOR"],  // Keep allowedRoles for consistency
+    allowedRoles: ["DOCTOR"], // Keep allowedRoles for consistency
   },
   {
     key: "2",
@@ -62,5 +64,22 @@ export const navigation = [
         allowedRoles: ["DOCTOR"],
       },
     ],
+  },
+  {
+    key: "4",
+    label: "My Appointments",
+    icon: (
+      <Icon
+        icon="lucide:calendar-check"
+        style={{ fontSize: defaultIconSize }}
+      />
+    ),
+    path: "/VideoConference",
+    breadcrumb: [
+      {
+        title: "My Appointments",
+      },
+    ],
+    allowedRoles: ["DOCTOR"], // Specify allowedRoles here as well
   },
 ];
