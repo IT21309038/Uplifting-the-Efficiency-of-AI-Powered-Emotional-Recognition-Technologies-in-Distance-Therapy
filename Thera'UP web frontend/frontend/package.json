@@ -13,6 +13,7 @@
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
     "@iconify/react": "^5.0.2",
+    "@jitsi/react-sdk": "^1.4.4",
     "@mui/icons-material": "^6.1.6",
     "@mui/material": "^6.1.6",
     "@mui/styled-engine-sc": "^6.1.6",
@@ -24,6 +25,7 @@
     "react-dom": "19.0.0-rc-02c0e824-20241028",
     "react-hot-toast": "^2.4.1",
     "react-toastify": "^10.0.6",
+    "recharts": "^2.15.1",
     "styled-components": "^6.1.13"
   },
   "devDependencies": {
