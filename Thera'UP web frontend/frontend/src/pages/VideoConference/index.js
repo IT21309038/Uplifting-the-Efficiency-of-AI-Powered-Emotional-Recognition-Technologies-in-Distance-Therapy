@@ -1,178 +1,95 @@
-import CustomHead from "@/utils/CustomHead";
-import React from "react";
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  ResponsiveContainer,
-} from "recharts";
-import dynamic from "next/dynamic";
+import { Card, CardContent, Grid2, Typography } from "@mui/material";
 
-// Dynamically import JitsiMeeting to ensure it runs only on the client-side
-const JitsiMeeting = dynamic(
-  () => import("@jitsi/react-sdk").then((mod) => mod.JitsiMeeting),
-  { ssr: false }
-);
+import { useState, useEffect, useRef } from "react";
+import JitsiMeeting from "@/components/extras/JitsiMeeting";
 
 const VideoConference = () => {
-  // Dummy Data for Graphs
-  const data = [
-    { name: "Jan", value: 30 },
-    { name: "Feb", value: 50 },
-    { name: "Mar", value: 80 },
-    { name: "Apr", value: 40 },
-    { name: "May", value: 90 },
-  ];
+  const [roomName, setRoomName] = useState("");
+  const [emotion, setEmotion] = useState("Loading...");
+  const wsRef = useRef(null);
+
+  useEffect(() => {
+    // Initialize WebSocket connection to FastAPI
+    wsRef.current = new WebSocket("ws://localhost:8000/ws"); // Replace with your FastAPI WS URL
+    wsRef.current.onopen = () => console.log("WebSocket connected");
+    wsRef.current.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      setEmotion(data.emotion);
+    };
+    wsRef.current.onerror = (error) => console.error("WebSocket error:", error);
+    wsRef.current.onclose = () => console.log("WebSocket closed");
+
+    return () => {
+      if (wsRef.current) wsRef.current.close();
+    };
+  }, []);
+
+  const handleVideoTrackReceived = (videoTrack) => {
+    const stream = new MediaStream([videoTrack]);
+    const videoElement = document.createElement("video");
+    videoElement.srcObject = stream;
+    videoElement.play();
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = videoElement.videoWidth || 640; // Default if not available yet
+    canvas.height = videoElement.videoHeight || 480;
+
+    function captureFrame() {
+      if (videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
+        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+        const frameData = canvas.toDataURL("image/jpeg", 0.5); // Compress to reduce bandwidth
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify({ frame: frameData }));
+        }
+      }
+      requestAnimationFrame(captureFrame); // Continuous loop
+    }
+    requestAnimationFrame(captureFrame);
+  };
 
   return (
     <>
-      <CustomHead title="Conference" />
-      <div
-        style={{
-          display: "flex",
-          height: "100vh",
-          padding: "20px",
-          gap: "20px",
-        }}
-      >
-        {/* Left Side - Video Conference */}
-        <div
-          style={{
-            flex: 1,
-            backgroundColor: "#f4f4f4",
-            borderRadius: "8px",
-            padding: "20px",
-            display: "flex",
-            flexDirection: "column",
-            boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-            overflow: "hidden", // Prevents expansion
-            height: "100%", // Makes sure the div takes full height
-          }}
-        >
-          <h2
-            style={{
-              fontSize: "18px",
-              fontWeight: "600",
-              marginBottom: "10px",
-            }}
-          >
-            Video Conference
-          </h2>
-
-          {/* Expandable Video Conference Container */}
-          <div style={{ flexGrow: 1, overflow: "hidden", height: "100%" }}>
-            <JitsiMeeting
-              roomName="TheraUP-Conference"
-              configOverwrite={{
-                startWithAudioMuted: false,
-                startWithVideoMuted: false,
-                prejoinPageEnabled: false,
-                disableModeratorIndicator: true,
-                disableProfile: true,
-                startAudioOnly: false,
-                toolbarButtons: [
-                  "microphone",
-                  "camera",
-                  "hangup",
-                  "settings",
-                  "tileview",
-                  "volume",
-                ],
-              }}
-              interfaceConfigOverwrite={{
-                SHOW_JITSI_WATERMARK: false,
-                SHOW_BRAND_WATERMARK: false,
-              }}
-              userInfo={{ displayName: "Doctor" }}
-              //style={{ width: "100%", height: "100%", minHeight: "800px" }} // Ensures it fully fills the container
-              style={{
-                flexGrow: 1,
-                overflow: "hidden",
-                height: "100%",
-                width: "80%",
-                minHeight: "800px",
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Right Side - Graphs (Stacked One Below Another) */}
-        <div
-          style={{
-            width: "30%",
-            display: "flex",
-            flexDirection: "column",
-            gap: "20px",
-            padding: "10px",
-            height: "100%", // Ensures the height matches the video container
-          }}
-        >
-          {/* Line Chart */}
-          <div
-            style={{
-              backgroundColor: "#fff",
-              boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-              borderRadius: "8px",
-              padding: "20px",
-              height: "50%",
-            }}
-          >
-            <h2
-              style={{
-                fontSize: "16px",
-                fontWeight: "600",
-                marginBottom: "10px",
-              }}
-            >
-              Patient Trends
-            </h2>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data}>
-                <XAxis dataKey="name" />
-                <YAxis />
-                <CartesianGrid strokeDasharray="3 3" />
-                <Tooltip />
-                <Line type="monotone" dataKey="value" stroke="#8884d8" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Bar Chart */}
-          <div
-            style={{
-              backgroundColor: "#fff",
-              boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-              borderRadius: "8px",
-              padding: "20px",
-              height: "50%",
-            }}
-          >
-            <h2
-              style={{
-                fontSize: "16px",
-                fontWeight: "600",
-                marginBottom: "10px",
-              }}
-            >
-              Appointments
-            </h2>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data}>
-                <XAxis dataKey="name" />
-                <YAxis />
-                <CartesianGrid strokeDasharray="3 3" />
-                <Tooltip />
-                <Bar dataKey="value" fill="#82ca9d" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
+      <Grid2 container spacing={2}>
+        <Grid2 item size={12}>
+          <Card>
+            <CardContent>
+              <Typography variant="h5" fontWeight={600}>
+                Video Conference
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid2>
+        <Grid2 item size={12}>
+          <Card>
+            <CardContent>
+              <Grid2 container spacing={2}>
+                <Grid2 item size={4} sx={{ height: 350}}>
+                  <JitsiMeeting
+                    roomName={roomName}
+                    onVideoTrackReceived={handleVideoTrackReceived}
+                  />
+                </Grid2>
+                <Grid2
+                  item
+                  size={8}
+                  sx={{ height: 350, background: "red" }}
+                ></Grid2>
+                <Grid2
+                  item
+                  size={6}
+                  sx={{ height: 300, background: "green" }}
+                ></Grid2>
+                <Grid2
+                  item
+                  size={6}
+                  sx={{ height: 300, background: "blue" }}
+                ></Grid2>
+              </Grid2>
+            </CardContent>
+          </Card>
+        </Grid2>
+      </Grid2>
     </>
   );
 };
