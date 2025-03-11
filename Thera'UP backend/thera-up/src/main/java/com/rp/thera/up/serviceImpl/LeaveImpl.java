@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.util.Date;
 
 @Service
 public class LeaveImpl implements TherapistLeaveService {
@@ -20,13 +21,13 @@ public class LeaveImpl implements TherapistLeaveService {
     @Autowired
     private DoctorRepo doctorRepository;
 
-    public void addLeave(int doctorId, LocalDate leaveDate) {
+    public void addLeave(int doctorId, Date leaveDate) {
         Doctor doctor = doctorRepository.findById(doctorId).orElse(null);
 
         if (doctor == null) {
             throw new RuntimeException("Doctor not found");
         } else {
-            if (leaveDate.isBefore(LocalDate.now().plusDays(10))) {
+            if (leaveDate.before(new Date(System.currentTimeMillis() + 10L * 24 * 60 * 60 * 1000))) {
                 throw new RuntimeException("Leave date should be at least 10 days from today");
             } else {
                 TherapistLeave leave = new TherapistLeave();

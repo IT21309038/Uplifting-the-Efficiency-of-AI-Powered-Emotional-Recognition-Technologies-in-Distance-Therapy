@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Date;
 
 @Data
 @NoArgsConstructor
@@ -14,8 +15,8 @@ public class ScheduleOption {
     private String sessionCode;
     private int patientId;
     private int doctorId;
-    private LocalDate date;
-    private LocalTime time;
+    private Date date;
+    private Date time;
     private int sessionLength; // in minutes
 }
 

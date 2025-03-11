@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.util.Date;
 
 @Entity
 @Data
@@ -23,7 +24,7 @@ public class TherapistLeave {
     @JoinColumn(name = "doctor_id", referencedColumnName = "id", nullable = false)
     private Doctor doctor;
 
-    private LocalDate leaveDate; // Specific leave days
+    private Date leaveDate; // Specific leave days
 
     @Enumerated(EnumType.STRING)
     private DayOfWeek offDay; // Permanent weekly off-day

@@ -13,10 +13,7 @@ import com.rp.thera.up.service.SchedulingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneId;
+import java.time.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -37,7 +34,6 @@ public class ScheduleImpl implements SchedulingService {
 
     private static final int BUFFER_TIME = 10; // 10-minute break between sessions
 
-    @Override
     public List<Schedule> scheduleSession(StressScoreRecord record) {
         int patientId = Integer.parseInt(record.getPatientId());
         float stressScore = record.getStressScore();
@@ -49,7 +45,9 @@ public class ScheduleImpl implements SchedulingService {
         }
 
         List<Schedule> options = new ArrayList<>();
-        LocalDate startDate = LocalDate.now().plusDays(1);
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_YEAR, 1);
+        Date startDate = calendar.getTime();
         List<Doctor> availableDoctors = getAvailableDoctors(startDate, doctors);
 
         while (options.size() < 3) {
@@ -58,16 +56,20 @@ public class ScheduleImpl implements SchedulingService {
                 options.addAll(assignSessions(availableDoctors, startDate, sessionLength, 3 - options.size(), patientId));
             } else {
                 // **MODERATE/LOW-STRESS PATIENTS: Follow Fixed Non-Sequential Pattern**
-                List<Integer> dayOffsets = Arrays.asList(1, 4, 7);
+                int[] dayOffsets = {1, 4, 7};
                 for (int offset : dayOffsets) {
-                    LocalDate sessionDate = startDate.plusDays(offset);
+                    calendar.setTime(startDate);
+                    calendar.add(Calendar.DAY_OF_YEAR, offset);
+                    Date sessionDate = calendar.getTime();
                     options.addAll(assignSessions(availableDoctors, sessionDate, sessionLength, 1, patientId));
                     if (options.size() >= 3) {
                         break;
                     }
                 }
             }
-            startDate = startDate.plusDays(1); // Move to the next day if not enough sessions are found
+            calendar.setTime(startDate);
+            calendar.add(Calendar.DAY_OF_YEAR, 1);
+            startDate = calendar.getTime(); // Move to the next day if not enough sessions are found
         }
 
         return options;
@@ -76,28 +78,29 @@ public class ScheduleImpl implements SchedulingService {
     /**
      * **Finds doctors who are not on leave or off on the given date.**
      */
-    private List<Doctor> getAvailableDoctors(LocalDate date, List<Doctor> doctors) {
+    private List<Doctor> getAvailableDoctors(Date date, List<Doctor> doctors) {
         return doctors.stream()
                 .filter(doc -> !therapistLeaveRepository.existsByDoctorIdAndLeaveDate(doc.getId(), date))
                 .filter(doc -> !isDoctorOffDay(doc, date))
                 .collect(Collectors.toList());
     }
 
-    private boolean isDoctorOffDay(Doctor doctor, LocalDate date) {
-        List<TherapistLeave> leaves = therapistLeaveRepository.findByDoctorIdAndOffDay(doctor.getId(), date.getDayOfWeek());
+    private boolean isDoctorOffDay(Doctor doctor, Date date) {
+        DayOfWeek dayOfWeek = date.toInstant().atZone(ZoneId.systemDefault()).getDayOfWeek();
+        List<TherapistLeave> leaves = therapistLeaveRepository.findByDoctorIdAndOffDay(doctor.getId(), dayOfWeek);
         return !leaves.isEmpty();
     }
 
     /**
      * **Assigns sessions evenly among doctors with the earliest available slots.**
      */
-    private List<Schedule> assignSessions(List<Doctor> doctors, LocalDate date, int sessionLength, int count, int patientId) {
+    public List<Schedule> assignSessions(List<Doctor> doctors, Date date, int sessionLength, int count, int patientId) {
         List<Schedule> schedules = new ArrayList<>();
         int doctorIndex = 0;
 
         while (schedules.size() < count && !doctors.isEmpty()) {
             Doctor doctor = doctors.get(doctorIndex % doctors.size());
-            Optional<LocalTime> availableTime = findAvailableTimeSlot(doctor, date, sessionLength);
+            Optional<Date> availableTime = findAvailableTimeSlot(doctor, date, sessionLength);
 
             if (availableTime.isPresent()) {
                 String sessionCode = SessionCodeGenerator.generateSessionCode();
@@ -114,34 +117,51 @@ public class ScheduleImpl implements SchedulingService {
     /**
      * **Finds an available time slot dynamically based on clinic hours and existing sessions.**
      */
-    private Optional<LocalTime> findAvailableTimeSlot(Doctor doctor, LocalDate date, int sessionLength) {
-        LocalTime clinicStartTime = LocalTime.of(9, 0);
-        LocalTime clinicEndTime = LocalTime.of(17, 0);
+    private Optional<Date> findAvailableTimeSlot(Doctor doctor, Date date, int sessionLength) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.set(Calendar.HOUR_OF_DAY, 9);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        Date clinicStartTime = calendar.getTime();
+
+        calendar.set(Calendar.HOUR_OF_DAY, 17);
+        Date clinicEndTime = calendar.getTime();
 
         List<Schedule> existingSchedules = scheduleRepository.findByDoctorIdAndDate(doctor.getId(), date);
         existingSchedules.sort(Comparator.comparing(Schedule::getTime));
 
-        LocalTime currentTime = clinicStartTime;
+        Date currentTime = clinicStartTime;
 
         for (Schedule existing : existingSchedules) {
-            LocalTime existingStart = existing.getTime();
+            Date existingStart = existing.getTime();
             int existingDuration = existing.getSessionDuration();
-            LocalTime existingEnd = existingStart.plusMinutes(existingDuration);
+            calendar.setTime(existingStart);
+            calendar.add(Calendar.MINUTE, existingDuration);
+            Date existingEnd = calendar.getTime();
 
-            LocalTime latestPossibleStart = existingStart.minusMinutes(sessionLength + BUFFER_TIME);
-            if (!currentTime.isAfter(latestPossibleStart) &&
-                    currentTime.plusMinutes(sessionLength).isBefore(existingStart.minusMinutes(BUFFER_TIME))) {
+            calendar.setTime(existingStart);
+            calendar.add(Calendar.MINUTE, -(sessionLength + BUFFER_TIME));
+            Date latestPossibleStart = calendar.getTime();
+
+            calendar.setTime(existingStart);
+            calendar.add(Calendar.MINUTE, -BUFFER_TIME);
+            Date earliestExistingStart = calendar.getTime();
+
+            if (!currentTime.after(latestPossibleStart) && currentTime.before(earliestExistingStart)) {
                 return Optional.of(currentTime);
             }
 
-            currentTime = existingEnd.plusMinutes(BUFFER_TIME);
+            calendar.setTime(existingEnd);
+            calendar.add(Calendar.MINUTE, BUFFER_TIME);
+            currentTime = calendar.getTime();
 
-            if (currentTime.plusMinutes(sessionLength).isAfter(clinicEndTime)) {
+            if (currentTime.after(clinicEndTime)) {
                 return Optional.empty();
             }
         }
 
-        if (!currentTime.plusMinutes(sessionLength).isAfter(clinicEndTime)) {
+        if (!currentTime.after(clinicEndTime)) {
             return Optional.of(currentTime);
         }
 
@@ -167,7 +187,7 @@ public class ScheduleImpl implements SchedulingService {
         newRecord.setStressLevel(record.getStressLevel());
         newRecord.setErrorRate(record.getErrorRate());
         newRecord.setAverageReactionTime(record.getAverageReactionTime());
-        newRecord.setCreatedAt(LocalDateTime.ofInstant(new Date().toInstant(), ZoneId.systemDefault()));
+        newRecord.setCreatedAt(new Date(System.currentTimeMillis()));
 
         stressScoreRecordRepository.save(newRecord);
 

@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Date;
 
 @Data
 @NoArgsConstructor
@@ -19,8 +20,8 @@ public class Schedule {
     private String session_id;
     private int  patientId;
     private int  doctorId;
-    private LocalDate date;
-    private LocalTime time;
+    private Date date;
+    private Date time;
     private int sessionDuration;
     private String status;
 }

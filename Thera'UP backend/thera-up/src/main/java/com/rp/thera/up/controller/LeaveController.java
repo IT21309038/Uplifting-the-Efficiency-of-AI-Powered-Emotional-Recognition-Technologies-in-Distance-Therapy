@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.util.Date;
 
 @RestController
 @RequestMapping("api/v1/theraup/leave")
@@ -20,8 +21,8 @@ public class LeaveController {
     LeaveImpl therapistLeaveService;
 
     @PostMapping(value = "/addLeave")
-    public void addLeave(int doctorId, String leaveDate) {
-        therapistLeaveService.addLeave(doctorId, LocalDate.parse(leaveDate));
+    public void addLeave(int doctorId, Date leaveDate) {
+        therapistLeaveService.addLeave(doctorId, leaveDate);
     }
 
     @PostMapping(value = "/addOffDay")
