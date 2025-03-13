@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import JitsiMeeting from "@/components/extras/JitsiMeeting";
 
 const VideoConference = () => {
-  const [roomName, setRoomName] = useState("");
+  const [roomName, setRoomName] = useState("Meeting-001");
   const [emotion, setEmotion] = useState("Loading...");
   const wsRef = useRef(null);
 
@@ -64,7 +64,7 @@ const VideoConference = () => {
           <Card>
             <CardContent>
               <Grid2 container spacing={2}>
-                <Grid2 item size={4} sx={{ height: 350}}>
+                <Grid2 item size={5} sx={{ height: 600}}>
                   <JitsiMeeting
                     roomName={roomName}
                     onVideoTrackReceived={handleVideoTrackReceived}
@@ -72,8 +72,8 @@ const VideoConference = () => {
                 </Grid2>
                 <Grid2
                   item
-                  size={8}
-                  sx={{ height: 350, background: "red" }}
+                  size={7}
+                  sx={{ height: 600, background: "red" }}
                 ></Grid2>
                 <Grid2
                   item
