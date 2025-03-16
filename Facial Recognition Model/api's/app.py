@@ -152,22 +152,25 @@ async def websocket_endpoint(websocket: WebSocket):
 
     try:
         while True:
-            data = await websocket.receive_text()
-            logger.info(f"Received data for connection {connection_id}, length: {len(data)}")
-            frame = decode_base64_frame(data)
-            if not data.startswith("data:image"):
-                logger.info(f"Non-image data received: {data[:20]}... skipping")
-                continue
-            if frame is None:
-                logger.warning(f"Failed to decode frame for {connection_id}, skipping")
-                continue
-            processed_frame, _ = process_frame(frame, connection_states[connection_id])
-            graph = generate_stress_graph(connection_states[connection_id].stress_levels)
-            combined_frame = cv2.hconcat([cv2.resize(processed_frame, (640, 480)), cv2.resize(graph, (640, 480))])
-            ret, jpeg = cv2.imencode('.jpg', combined_frame)
-            if ret:
-                await websocket.send_bytes(jpeg.tobytes())
-                logger.info(f"Sent processed frame for connection {connection_id}")
+            try:
+                data = await websocket.receive_text()
+                logger.info(f"Received data for connection {connection_id}, length: {len(data)}")
+                if not data.startswith("data:image"):
+                    logger.info(f"Non-image data received: {data[:20]}... skipping")
+                    continue
+                frame = decode_base64_frame(data)
+                if frame is None:
+                    logger.warning(f"Failed to decode frame for {connection_id}, skipping")
+                    continue
+                processed_frame, _ = process_frame(frame, connection_states[connection_id])
+                graph = generate_stress_graph(connection_states[connection_id].stress_levels)
+                combined_frame = cv2.hconcat([cv2.resize(processed_frame, (640, 480)), cv2.resize(graph, (640, 480))])
+                ret, jpeg = cv2.imencode('.jpg', combined_frame)
+                if ret:
+                    await websocket.send_bytes(jpeg.tobytes())
+                    logger.info(f"Sent processed frame for connection {connection_id}")
+            except Exception as e:
+                logger.error(f"Error processing frame for {connection_id}: {e}")
     except Exception as e:
         logger.error(f"WebSocket error for {connection_id}: {e}")
     finally:

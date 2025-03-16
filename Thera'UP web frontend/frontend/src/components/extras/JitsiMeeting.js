@@ -3,6 +3,7 @@ import { JitsiMeeting } from "@jitsi/react-sdk";
 
 const JitsiMeetingComponent = ({ roomName, onVideoTrackReceived }) => {
   const jitsiApiRef = useRef(null);
+  const videoElementRef = useRef(null);
 
   const handleApiReady = (externalApi) => {
     jitsiApiRef.current = externalApi;
@@ -15,9 +16,21 @@ const JitsiMeetingComponent = ({ roomName, onVideoTrackReceived }) => {
     externalApi.addListener("trackAdded", (track) => {
       if (track.getType() === "video" && !track.isLocal()) {
         console.log("Remote participant video track detected");
-        onVideoTrackReceived(track.track);
+        const mediaStream = new MediaStream([track.getOriginalStream().getVideoTracks()[0]]);
+        onVideoTrackReceived(mediaStream);
+        attachVideoStream(mediaStream);
       }
     });
+  };
+
+  const attachVideoStream = (stream) => {
+    if (!videoElementRef.current) {
+      videoElementRef.current = document.createElement("video");
+      videoElementRef.current.autoplay = true;
+      videoElementRef.current.style.display = "none";
+      document.body.appendChild(videoElementRef.current);
+    }
+    videoElementRef.current.srcObject = stream;
   };
 
   return (

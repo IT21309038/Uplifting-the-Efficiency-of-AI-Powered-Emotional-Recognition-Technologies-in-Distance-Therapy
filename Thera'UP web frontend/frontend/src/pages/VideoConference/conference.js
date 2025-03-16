@@ -7,13 +7,19 @@ const VideoConference = () => {
   const [patientName, setPatientName] = useState("");
   const [processedStreamUrl, setProcessedStreamUrl] = useState(null);
   const wsRef = useRef(null);
+  const videoElementRef = useRef(null);
+  const canvasRef = useRef(null);
+  const animationFrameId = useRef(null);
+  const [wsConnected, setWsConnected] = useState(false); // Track WebSocket status
 
+  // WebSocket setup and cleanup
   useEffect(() => {
     let frameBuffer = [];
     const connectWebSocket = () => {
       wsRef.current = new WebSocket("ws://localhost:8000/ws");
       wsRef.current.onopen = () => {
         console.log("WebSocket connected");
+        setWsConnected(true);
         frameBuffer.forEach((frame) => wsRef.current.send(frame));
         frameBuffer = [];
       };
@@ -23,22 +29,32 @@ const VideoConference = () => {
         } else {
           console.log("Received processed frame from backend");
           const blob = new Blob([event.data], { type: "image/jpeg" });
-          setProcessedStreamUrl(URL.createObjectURL(blob));
+          setProcessedStreamUrl((prevUrl) => {
+            if (prevUrl) URL.revokeObjectURL(prevUrl);
+            return URL.createObjectURL(blob);
+          });
         }
       };
       wsRef.current.onerror = (error) => {
         console.error("WebSocket error:", error);
+        setWsConnected(false);
         setTimeout(connectWebSocket, 1000);
       };
-      wsRef.current.onclose = () => console.log("WebSocket closed");
+      wsRef.current.onclose = () => {
+        console.log("WebSocket closed");
+        setWsConnected(false);
+      };
     };
     connectWebSocket();
 
     return () => {
-      if (wsRef.current) wsRef.current.close();
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
     };
   }, []);
 
+  // Parse URL parameters
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const roomName = urlParams.get("session_id");
@@ -53,55 +69,108 @@ const VideoConference = () => {
     setPatientName(patientName);
   }, []);
 
+  // Handle video track and frame capture
   const handleVideoTrackReceived = (videoTrack) => {
     console.log("Received remote video track:", videoTrack);
     const stream = new MediaStream([videoTrack]);
-    const videoElement = document.createElement("video");
-    videoElement.srcObject = stream;
-    videoElement.autoplay = true;
-    videoElement.style.display = "none";
-    document.body.appendChild(videoElement);
 
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = 640;
-    canvas.height = 480;
+    // Setup video element
+    if (!videoElementRef.current) {
+      videoElementRef.current = document.createElement("video");
+      videoElementRef.current.autoplay = true;
+      videoElementRef.current.style.display = "none";
+      document.body.appendChild(videoElementRef.current);
+    }
+    videoElementRef.current.srcObject = stream;
+
+    // Setup canvas
+    if (!canvasRef.current) {
+      canvasRef.current = document.createElement("canvas");
+      canvasRef.current.width = 640;
+      canvasRef.current.height = 480;
+    }
+    const ctx = canvasRef.current.getContext("2d");
 
     let lastSent = 0;
-    function captureFrame() {
-      const now = Date.now();
-      if (now - lastSent >= 100) {
-        if (videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
-          console.log("Capturing frame from video element");
-          ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-          canvas.toBlob(
-            (blob) => {
-              if (
-                wsRef.current &&
-                wsRef.current.readyState === WebSocket.OPEN
-              ) {
-                console.log("Sending frame to backend");
-                wsRef.current.send(blob);
-              } else {
-                console.warn("WebSocket not open, skipping frame send");
-              }
-            },
-            "image/jpeg",
-            0.5
-          );
-          lastSent = now;
-        } else {
-          console.log(
-            "Video element not ready, state:",
-            videoElement.readyState
-          );
-        }
+    const captureFrame = () => {
+      if (!videoElementRef.current || !wsRef.current) {
+        console.log(
+          "Video element or WebSocket not ready, stopping frame capture"
+        );
+        return;
       }
-      requestAnimationFrame(captureFrame);
-    }
-    console.log("Starting frame capture loop");
-    requestAnimationFrame(captureFrame);
+
+      const now = Date.now();
+      if (
+        now - lastSent >= 100 &&
+        videoElementRef.current.readyState ===
+          videoElementRef.current.HAVE_ENOUGH_DATA
+      ) {
+        console.log(
+          "Capturing frame, readyState:",
+          videoElementRef.current.readyState
+        );
+        ctx.drawImage(videoElementRef.current, 0, 0, 640, 480);
+        const base64Frame = canvasRef.current.toDataURL("image/jpeg", 0.5);
+        if (wsRef.current.readyState === WebSocket.OPEN) {
+          console.log("Sending base64 frame to backend");
+          wsRef.current.send(base64Frame);
+        } else {
+          console.warn("WebSocket not open, buffering frame");
+          frameBuffer.push(base64Frame);
+        }
+        lastSent = now;
+      } else {
+        console.log(
+          "Frame not captured, readyState:",
+          videoElementRef.current.readyState
+        );
+      }
+      animationFrameId.current = requestAnimationFrame(captureFrame);
+    };
+
+    // Wait for video to be ready before starting capture
+    const startCapture = () => {
+      if (
+        videoElementRef.current.readyState >=
+        videoElementRef.current.HAVE_ENOUGH_DATA
+      ) {
+        console.log("Video ready, starting frame capture");
+        animationFrameId.current = requestAnimationFrame(captureFrame);
+      } else {
+        console.log(
+          "Waiting for video to be ready, current readyState:",
+          videoElementRef.current.readyState
+        );
+        setTimeout(startCapture, 100);
+      }
+    };
+    startCapture();
+
+    // Cleanup
+    return () => {
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+      }
+      if (videoElementRef.current) {
+        videoElementRef.current.srcObject = null;
+        document.body.removeChild(videoElementRef.current);
+        videoElementRef.current = null;
+      }
+      if (canvasRef.current) {
+        canvasRef.current = null;
+      }
+    };
   };
+
+  // Cleanup processed stream URL on unmount
+  useEffect(() => {
+    return () => {
+      if (processedStreamUrl) {
+        URL.revokeObjectURL(processedStreamUrl);
+      }
+    };
+  }, [processedStreamUrl]);
 
   return (
     <Grid2 container spacing={2}>
@@ -141,7 +210,8 @@ const VideoConference = () => {
                   />
                 ) : (
                   <Typography color="white">
-                    Waiting for processed stream...
+                    Waiting for processed stream... (WebSocket:{" "}
+                    {wsConnected ? "Connected" : "Disconnected"})
                   </Typography>
                 )}
               </Grid2>
