@@ -49,10 +49,10 @@ body::-webkit-scrollbar-track {
   height: 7px;
 }
 
-/* .MuiDataGrid-scrollbar--vertical {
+.MuiDataGrid-scrollbar--vertical {
   display: none !important;
-} */
-/* .MuiDataGrid-columnHeader {
+}
+.MuiDataGrid-columnHeader {
   background-color: #f1f1f1;
   font-weight: 900;
   font-size: 14px;
@@ -68,10 +68,9 @@ body::-webkit-scrollbar-track {
   text-transform: uppercase;
 }
 
-
 .css-ptkaw2-MuiDataGrid-root .MuiDataGrid-withBorderColor {
   outline: none !important;
-  } */
+}
 
 .MuiDataGrid-root .MuiDataGrid-cell:focus-within {
   outline: none !important;
@@ -85,6 +84,12 @@ body::-webkit-scrollbar-track {
 .MuiDataGrid-cell {
   display: flex !important;
   align-items: center !important;
+}
+
+.css-lqki37-MuiTypography-root {
+  color: #000000 !important;
+  font-size: 1rem !important;
+  font-weight: 500 !important;
 }
 /*Data Grid Styling*/
 
