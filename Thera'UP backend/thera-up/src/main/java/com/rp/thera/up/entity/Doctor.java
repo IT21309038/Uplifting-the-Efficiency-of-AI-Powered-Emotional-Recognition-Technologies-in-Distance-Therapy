@@ -24,6 +24,8 @@ public class Doctor {
     private String full_name;
     private String license_number;
     private String qualification;
+    private double rate_per_hour;
+    private String experience;
     private String gender;
     @Column(unique = true,nullable = false)
     private String email;
@@ -32,6 +34,10 @@ public class Doctor {
     @ManyToOne
     @JoinColumn(name = "role_id", referencedColumnName = "id")
     private Role role;
+
+    @ManyToOne
+    @JoinColumn(name = "career_role_id", referencedColumnName = "id")
+    private CareerRoles careerRoles;
 
     private Date created_at;
     private Date updated_at;

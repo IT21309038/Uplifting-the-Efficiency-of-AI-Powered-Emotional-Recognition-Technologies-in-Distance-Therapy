@@ -5,6 +5,7 @@ import com.rp.thera.up.DTO.doctorDTO.LoginDoctorDTO;
 import com.rp.thera.up.DTO.doctorDTO.SucessLoginDoctorDTO;
 import com.rp.thera.up.customException.DoctorException;
 import com.rp.thera.up.entity.Doctor;
+import com.rp.thera.up.repo.CareerRoleRepo;
 import com.rp.thera.up.repo.DoctorRepo;
 import com.rp.thera.up.repo.RoleRepo;
 import com.rp.thera.up.service.DoctorService;
@@ -29,6 +30,9 @@ public class DoctorServiceImpl implements DoctorService {
     private RoleRepo roleRepo;
 
     @Autowired
+    private CareerRoleRepo careerRoleRepo;
+
+    @Autowired
     private ModelMapper modelMapper;
 
     @Override
@@ -36,6 +40,7 @@ public class DoctorServiceImpl implements DoctorService {
 
         String email = createDoctorDTO.getEmail();
         int role_id = createDoctorDTO.getRole_id();
+        int career_role_id = createDoctorDTO.getCareer_role_id();
 
         if (doctorRepo.findByEmail(email) != null) {
             throw new DoctorException("Doctor with email " + email + " already exists", HttpStatus.CONFLICT);
@@ -46,11 +51,17 @@ public class DoctorServiceImpl implements DoctorService {
             throw new DoctorException("Role with id " + role_id + " is not valid", HttpStatus.BAD_REQUEST);
         }
 
+        //career role id must be a valid career role id
+        if (roleRepo.findById(career_role_id) == null) {
+            throw new DoctorException("Career role with id " + career_role_id + " is not valid", HttpStatus.BAD_REQUEST);
+        }
+
         //all fields must be filled
         if (createDoctorDTO.getFirst_name() == null || createDoctorDTO.getFirst_name().isEmpty() ||
                 createDoctorDTO.getLast_name() == null || createDoctorDTO.getLast_name().isEmpty() ||
                 createDoctorDTO.getLicense_number() == null || createDoctorDTO.getLicense_number().isEmpty() ||
                 createDoctorDTO.getQualification() == null || createDoctorDTO.getQualification().isEmpty() ||
+                createDoctorDTO.getRate_per_hour() == 0 || createDoctorDTO.getExperience() == null || createDoctorDTO.getExperience().isEmpty() ||
                 createDoctorDTO.getGender() == null || createDoctorDTO.getGender().isEmpty() ||
                 createDoctorDTO.getEmail() == null || createDoctorDTO.getEmail().isEmpty() ||
                 createDoctorDTO.getPassword() == null || createDoctorDTO.getPassword().isEmpty()) {
@@ -68,10 +79,13 @@ public class DoctorServiceImpl implements DoctorService {
         doctor.setFull_name(createDoctorDTO.getFirst_name() + " " + createDoctorDTO.getLast_name());
         doctor.setLicense_number(createDoctorDTO.getLicense_number());
         doctor.setQualification(createDoctorDTO.getQualification());
+        doctor.setRate_per_hour(createDoctorDTO.getRate_per_hour());
+        doctor.setExperience(createDoctorDTO.getExperience());
         doctor.setGender(createDoctorDTO.getGender());
         doctor.setEmail(createDoctorDTO.getEmail());
         doctor.setPassword(createDoctorDTO.getPassword());
         doctor.setRole(roleRepo.findById(role_id));
+        doctor.setCareerRoles(careerRoleRepo.findById(career_role_id));
         doctor.setCreated_at(new Date(System.currentTimeMillis()));
 
         return doctorRepo.save(doctor);
@@ -109,6 +123,7 @@ public class DoctorServiceImpl implements DoctorService {
         successLoginDoctorDTO.setFull_name(doctor.getFull_name());
         successLoginDoctorDTO.setEmail(doctor.getEmail());
         successLoginDoctorDTO.setRole(doctor.getRole());
+        successLoginDoctorDTO.setCareer_roles(doctor.getCareerRoles());
 
         return successLoginDoctorDTO;
     }
