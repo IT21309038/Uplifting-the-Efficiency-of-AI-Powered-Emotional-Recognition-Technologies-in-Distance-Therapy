@@ -65,21 +65,21 @@ export const navigation = [
       },
     ],
   },
-  {
-    key: "4",
-    label: "My Appointments",
-    icon: (
-      <Icon
-        icon="lucide:calendar-check"
-        style={{ fontSize: defaultIconSize }}
-      />
-    ),
-    path: "/VideoConference",
-    breadcrumb: [
-      {
-        title: "My Appointments",
-      },
-    ],
-    allowedRoles: ["DOCTOR"], // Specify allowedRoles here as well
-  },
+  // {
+  //   key: "4",
+  //   label: "My Appointments",
+  //   icon: (
+  //     <Icon
+  //       icon="lucide:calendar-check"
+  //       style={{ fontSize: defaultIconSize }}
+  //     />
+  //   ),
+  //   path: "/VideoConference",
+  //   breadcrumb: [
+  //     {
+  //       title: "My Appointments",
+  //     },
+  //   ],
+  //   allowedRoles: ["DOCTOR"], // Specify allowedRoles here as well
+  // },
 ];

@@ -3,6 +3,7 @@ package com.rp.thera.up.exception;
 import com.rp.thera.up.ResponseHandler;
 import com.rp.thera.up.customException.DoctorException;
 import com.rp.thera.up.customException.GlobalGetException;
+import com.rp.thera.up.customException.PatientException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -28,6 +29,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DoctorException.class)
     public ResponseEntity<Object> handleDoctorException(DoctorException e, WebRequest request){
+        return ResponseHandler.responseBuilder(e.getMessage(), e.getStatus(), null);
+    }
+
+    @ExceptionHandler(PatientException.class)
+    public ResponseEntity<Object> handlePatientException(PatientException e, WebRequest request){
         return ResponseHandler.responseBuilder(e.getMessage(), e.getStatus(), null);
     }
 }
