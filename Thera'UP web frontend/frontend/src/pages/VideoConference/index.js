@@ -27,11 +27,11 @@ const mockData = [
   },
   {
     id: 2,
-    session_id: "S002-UUII0023",
+    session_id: "S002",
     patient: { id: 2, patient_name: "Jane Smith" },
     doctor: { id: 2, doctor_name: "Dr. Adams" },
     date: "2025-03-16",
-    time: "2:15 PM",
+    time: "5:20 PM",
     duration: "45 mins",
     status: "pending",
   },
