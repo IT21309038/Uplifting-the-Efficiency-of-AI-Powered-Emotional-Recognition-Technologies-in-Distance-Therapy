@@ -1,14 +1,9 @@
 package com.rp.thera.up.serviceImpl;
 
+import com.rp.thera.up.DTO.Schedule.ScheduleOption;
 import com.rp.thera.up.DTO.Schedule.SessionCodeGenerator;
-import com.rp.thera.up.entity.Doctor;
-import com.rp.thera.up.entity.Schedule;
-import com.rp.thera.up.entity.StressScoreRecord;
-import com.rp.thera.up.entity.TherapistLeave;
-import com.rp.thera.up.repo.DoctorRepo;
-import com.rp.thera.up.repo.ScheduleRepo;
-import com.rp.thera.up.repo.StressScoreRecordRepository;
-import com.rp.thera.up.repo.TherapistLeaveRepository;
+import com.rp.thera.up.entity.*;
+import com.rp.thera.up.repo.*;
 import com.rp.thera.up.service.SchedulingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -27,6 +22,9 @@ public class ScheduleImpl implements SchedulingService {
     private DoctorRepo doctorRepository;
 
     @Autowired
+    private PatientRepo patientRepository;
+
+    @Autowired
     private TherapistLeaveRepository therapistLeaveRepository;
 
     @Autowired
@@ -36,6 +34,8 @@ public class ScheduleImpl implements SchedulingService {
     private ScheduleRepo scheduleRepository;
 
     private static final int BUFFER_TIME = 10; // 10-minute break between sessions
+    private static final String PAST = "past";
+    private static final String UP_COMING = "up_coming";
 
     @Override
     public List<Schedule> scheduleSession(StressScoreRecord record) {
@@ -101,7 +101,8 @@ public class ScheduleImpl implements SchedulingService {
 
             if (availableTime.isPresent()) {
                 String sessionCode = SessionCodeGenerator.generateSessionCode();
-                schedules.add(new Schedule(sessionCode, patientId, doctor.getId(), date, availableTime.get(), sessionLength, "pending"));
+                Patient patient = patientRepository.findById(patientId).orElseThrow(() -> new IllegalStateException("Patient not found"));
+                schedules.add(new Schedule(sessionCode, patient, doctor, date, availableTime.get(), sessionLength, "pending", "pending", 0.0));
             }
 
             doctorIndex++;
@@ -175,8 +176,74 @@ public class ScheduleImpl implements SchedulingService {
     }
 
     @Override
-    public Schedule selectSchedule(Schedule schedule) {
+    public Schedule selectSchedule(ScheduleOption scheduleOption) {
+        Schedule newSchedule = new Schedule();
+
+        newSchedule.setSession_id(scheduleOption.getSessionCode());
+        newSchedule.setDate(scheduleOption.getDate());
+        newSchedule.setTime(scheduleOption.getTime());
+        newSchedule.setSessionDuration(scheduleOption.getSessionLength());
+        newSchedule.setPatient(patientRepository.findById(scheduleOption.getPatientId()).orElseThrow(() -> new IllegalStateException("Patient not found")));
+        newSchedule.setDoctor(doctorRepository.findById(scheduleOption.getDoctorId()).orElseThrow(() -> new IllegalStateException("Doctor not found")));
+        newSchedule.setStatus("pending");
+        newSchedule.setPaymentStatus("pending");
+        newSchedule.setRating(0.0);
+
+        scheduleRepository.save(newSchedule);
+        return newSchedule;
+    }
+
+    public List<Schedule> getScheduleByDoctor(Long doctorId, String sortBy) {
+        // Parse the sortBy parameter to extract year and month
+        String[] parts = sortBy.split("-");
+        int year = Integer.parseInt(parts[0]);
+        int month = Integer.parseInt(parts[1]);
+
+        // Get the start and end dates for the specified month and year
+        LocalDate startDate = LocalDate.of(year, month, 1);
+        LocalDate endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
+
+        // Retrieve and filter schedules
+        List<Schedule> schedules = scheduleRepository.findByDoctorIdAndStatusAndDateBetween(
+                doctorId, "pending", startDate, endDate);
+
+        // Sort schedules by date and time
+        schedules.sort(Comparator.comparing(Schedule::getDate).thenComparing(Schedule::getTime));
+
+        return schedules;
+    }
+
+    @Override
+    public List<Schedule> getScheduleByPatient(Long patientId, String type, Integer count) {
+        List<Schedule> schedules;
+
+        if (PAST.equals(type)) {
+            schedules = scheduleRepository.findByPatientIdAndStatusIn(patientId, List.of("completed", "not completed"));
+        } else if (UP_COMING.equals(type)) {
+            schedules = scheduleRepository.findByPatientIdAndStatus(patientId, "pending");
+        } else {
+            throw new IllegalArgumentException("Invalid type: " + type);
+        }
+
+        // Sort schedules by date and time
+        schedules.sort(Comparator.comparing(Schedule::getDate).thenComparing(Schedule::getTime));
+
+        // If count is provided, limit the number of results
+        if (count != null && count > 0) {
+            schedules = schedules.stream().limit(count).collect(Collectors.toList());
+        }
+
+        return schedules;
+    }
+
+    @Override
+    public Schedule rateSession(String sessionId, double rating) {
+        Schedule schedule = scheduleRepository.findById(sessionId)
+                .orElseThrow(() -> new IllegalStateException("Schedule not found"));
+
+        schedule.setRating(rating);
         scheduleRepository.save(schedule);
+
         return schedule;
     }
 }
