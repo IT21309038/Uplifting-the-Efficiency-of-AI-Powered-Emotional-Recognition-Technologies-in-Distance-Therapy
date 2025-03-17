@@ -41,7 +41,7 @@ const mockData = [
     patient: { id: 3, patient_name: "Robert Brown" },
     doctor: { id: 3, doctor_name: "Dr. Wilson" },
     date: "2025-03-17",
-    time: "12:00 PM",
+    time: "12:50 PM",
     duration: "60 mins",
     status: "pending",
   },

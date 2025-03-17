@@ -79,7 +79,7 @@ const JitsiMeetingComponent = ({ roomName, onVideoTrackReceived }) => {
 
   return (
     <JitsiMeeting
-      domain="meetings.pixelcore.lk"
+      domain="meet.jit.si"
       roomName={roomName}
       configOverwrite={{
         startWithAudioMuted: false,
