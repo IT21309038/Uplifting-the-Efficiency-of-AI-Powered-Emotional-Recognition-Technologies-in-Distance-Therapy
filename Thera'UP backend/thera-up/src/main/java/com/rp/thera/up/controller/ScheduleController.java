@@ -30,9 +30,16 @@ public class ScheduleController {
     }
 
     @PostMapping("/select")
-    public ResponseEntity<?> selectSchedule(@RequestBody Schedule scheduleOption) {
+    public ResponseEntity<?> selectSchedule(@RequestBody ScheduleOption scheduleOption) {
         Schedule schedule = schedulingService.selectSchedule(scheduleOption);
         return ResponseHandler.responseBuilder("Session selected successfully",HttpStatus.OK,schedule);
     }
+
+    @GetMapping("/get-schedule-by-doctor/{doctorId}")
+    public ResponseEntity<?> getScheduleByDoctor(@PathVariable Long doctorId, @RequestParam String sortBy) {
+        List<Schedule> scheduleOptions = schedulingService.getScheduleByDoctor(doctorId, sortBy);
+        return ResponseHandler.responseBuilder("Schedule fetched successfully",HttpStatus.OK,scheduleOptions);
+    }
+
 
 }

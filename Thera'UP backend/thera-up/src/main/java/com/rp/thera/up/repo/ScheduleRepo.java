@@ -11,4 +11,8 @@ public interface ScheduleRepo extends JpaRepository<Schedule, Long> {
 
     List<Schedule> findByDoctorIdAndDate(int doctorId, LocalDate date);
 
+    List<Schedule> findByDoctorIdAndStatusAndDateBetween(Long doctorId, String status, LocalDate startDate, LocalDate endDate);
+
+    List<Schedule> findByDateAndStatus(LocalDate date, String status);
+
 }
