@@ -17,4 +17,8 @@ public interface PatientService {
     void updatePatient(Integer id, PatientUpdateDTO patientUpdateDTO);
 
     void updatePatientPassword(Integer id, PatientPasswordUpdateDTO patientPasswordUpdateDTO);
+
+    void saveGeneralInfo(GeneralInfoDTO generalInfoDTO);
+
+    GeneralInfoDTO getGeneralInfo(String id);
 }

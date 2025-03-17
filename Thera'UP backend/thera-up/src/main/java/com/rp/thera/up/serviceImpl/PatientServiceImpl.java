@@ -3,6 +3,8 @@ package com.rp.thera.up.serviceImpl;
 import com.rp.thera.up.DTO.patientDTO.*;
 import com.rp.thera.up.customException.PatientException;
 import com.rp.thera.up.entity.Patient;
+import com.rp.thera.up.entity.PatientGeneralInfo;
+import com.rp.thera.up.repo.GeneralInfoRepo;
 import com.rp.thera.up.repo.PatientRepo;
 import com.rp.thera.up.repo.RoleRepo;
 import com.rp.thera.up.service.PatientService;
@@ -28,6 +30,9 @@ public class PatientServiceImpl implements PatientService {
 
     @Autowired
     private ModelMapper modelMapper;
+
+    @Autowired
+    private GeneralInfoRepo generalInfoRepo;
 
     @Override
     public void createPatient(PatientPostDTO patientPostDTO) throws PatientException {
@@ -188,5 +193,52 @@ public class PatientServiceImpl implements PatientService {
         patient.setPassword(password);
 
         patientRepo.save(patient);
+    }
+
+    @Override
+    public void saveGeneralInfo(GeneralInfoDTO generalInfoDTO) {
+
+            Integer patient_id = Integer.valueOf(generalInfoDTO.getPatientId());
+            String empStatus = generalInfoDTO.getEmpStatus();
+            String civilStatus = generalInfoDTO.getCivilStatus();
+            String livingStatus = generalInfoDTO.getLivingStatus();
+            String income = generalInfoDTO.getIncome();
+            String socialLife = generalInfoDTO.getSocialLife();
+
+            //all fields must be filled
+            if (empStatus == null || empStatus.isEmpty() ||
+                    civilStatus == null || civilStatus.isEmpty() ||
+                    livingStatus == null || livingStatus.isEmpty() ||
+                    income == null || income.isEmpty() ||
+                    socialLife == null || socialLife.isEmpty()) {
+                throw new PatientException("All fields must be filled", HttpStatus.BAD_REQUEST);
+            }
+
+            Patient patient = patientRepo.findById(patient_id).orElseThrow(() ->
+                    new PatientException("Patient with id " + patient_id + " does not exist", HttpStatus.NOT_FOUND));
+
+            PatientGeneralInfo patientGeneralInfo = new PatientGeneralInfo();
+            patientGeneralInfo.setPatient(patient);
+            patientGeneralInfo.setEmpStatus(empStatus);
+            patientGeneralInfo.setCivilStatus(civilStatus);
+            patientGeneralInfo.setLivingStatus(livingStatus);
+            patientGeneralInfo.setIncome(income);
+            patientGeneralInfo.setSocialLife(socialLife);
+
+            generalInfoRepo.save(patientGeneralInfo);
+    }
+
+    @Override
+    public GeneralInfoDTO getGeneralInfo(String patientId) {
+
+        Patient patient = patientRepo.findById(Integer.valueOf(patientId)).orElseThrow(() ->
+                new PatientException("Patient with id " + patientId + " does not exist", HttpStatus.NOT_FOUND));
+
+        PatientGeneralInfo patientGeneralInfo = generalInfoRepo.findByPatientId(Integer.valueOf(patientId));
+        if (patientGeneralInfo == null) {
+            throw new PatientException("General info for patient with id " + patientId + " does not exist", HttpStatus.NOT_FOUND);
+        }
+
+        return modelMapper.map(patientGeneralInfo, GeneralInfoDTO.class);
     }
 }

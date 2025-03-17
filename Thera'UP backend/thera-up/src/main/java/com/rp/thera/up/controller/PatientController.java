@@ -53,4 +53,16 @@ public class PatientController {
         patientService.updatePatientPassword(id, patientPasswordUpdateDTO);
         return ResponseHandler.responseBuilder("Patient password updated successfully", HttpStatus.OK, null);
     }
+
+    @PostMapping(value = "/patients/save-general-info")
+    public ResponseEntity<?> saveGeneralInfo(@RequestBody GeneralInfoDTO generalInfoDTO) {
+        patientService.saveGeneralInfo(generalInfoDTO);
+        return ResponseHandler.responseBuilder("General info saved successfully", HttpStatus.CREATED, null);
+    }
+
+    @GetMapping(value = "/patients/general-info/{patientId}")
+    public ResponseEntity<?> getGeneralInfo(@PathVariable String patientId) {
+        GeneralInfoDTO generalInfoDTO = patientService.getGeneralInfo(patientId);
+        return ResponseHandler.responseBuilder("General info retrieved successfully", HttpStatus.OK, generalInfoDTO);
+    }
 }
