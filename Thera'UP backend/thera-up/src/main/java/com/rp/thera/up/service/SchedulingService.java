@@ -14,4 +14,8 @@ public interface SchedulingService {
     public Schedule selectSchedule(ScheduleOption schedule);
 
     public List<Schedule> getScheduleByDoctor(Long doctorId, String sortBy);
+
+    public List<Schedule> getScheduleByPatient(Long patientId, String type, Integer count);
+
+    public Schedule rateSession(String sessionId, double rating);
 }

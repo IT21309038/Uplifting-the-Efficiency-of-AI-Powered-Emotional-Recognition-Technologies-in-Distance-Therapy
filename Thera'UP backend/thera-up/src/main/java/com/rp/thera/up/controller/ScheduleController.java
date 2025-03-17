@@ -41,5 +41,17 @@ public class ScheduleController {
         return ResponseHandler.responseBuilder("Schedule fetched successfully",HttpStatus.OK,scheduleOptions);
     }
 
+    @GetMapping("/get-schedule-by-patient/{patientId}")
+    public ResponseEntity<?> getScheduleByPatient(@PathVariable Long patientId, @RequestParam String type, @RequestParam (required = false, defaultValue = "0") Integer count) {
+        List<Schedule> scheduleOptions = schedulingService.getScheduleByPatient(patientId, type, count);
+        return ResponseHandler.responseBuilder("Schedule fetched successfully",HttpStatus.OK,scheduleOptions);
+    }
+
+    @PatchMapping("/rate-session/{sessionId}")
+    public ResponseEntity<?> rateSession(@PathVariable String sessionId, @RequestParam double rating) {
+        Schedule schedule = schedulingService.rateSession(sessionId, rating);
+        return ResponseHandler.responseBuilder("Session rated successfully",HttpStatus.OK,schedule);
+    }
+
 
 }

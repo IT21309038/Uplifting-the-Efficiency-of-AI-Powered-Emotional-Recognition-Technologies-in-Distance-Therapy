@@ -34,6 +34,8 @@ public class ScheduleImpl implements SchedulingService {
     private ScheduleRepo scheduleRepository;
 
     private static final int BUFFER_TIME = 10; // 10-minute break between sessions
+    private static final String PAST = "past";
+    private static final String UP_COMING = "up_coming";
 
     @Override
     public List<Schedule> scheduleSession(StressScoreRecord record) {
@@ -209,5 +211,39 @@ public class ScheduleImpl implements SchedulingService {
         schedules.sort(Comparator.comparing(Schedule::getDate).thenComparing(Schedule::getTime));
 
         return schedules;
+    }
+
+    @Override
+    public List<Schedule> getScheduleByPatient(Long patientId, String type, Integer count) {
+        List<Schedule> schedules;
+
+        if (PAST.equals(type)) {
+            schedules = scheduleRepository.findByPatientIdAndStatusIn(patientId, List.of("completed", "not completed"));
+        } else if (UP_COMING.equals(type)) {
+            schedules = scheduleRepository.findByPatientIdAndStatus(patientId, "pending");
+        } else {
+            throw new IllegalArgumentException("Invalid type: " + type);
+        }
+
+        // Sort schedules by date and time
+        schedules.sort(Comparator.comparing(Schedule::getDate).thenComparing(Schedule::getTime));
+
+        // If count is provided, limit the number of results
+        if (count != null && count > 0) {
+            schedules = schedules.stream().limit(count).collect(Collectors.toList());
+        }
+
+        return schedules;
+    }
+
+    @Override
+    public Schedule rateSession(String sessionId, double rating) {
+        Schedule schedule = scheduleRepository.findById(sessionId)
+                .orElseThrow(() -> new IllegalStateException("Schedule not found"));
+
+        schedule.setRating(rating);
+        scheduleRepository.save(schedule);
+
+        return schedule;
     }
 }
