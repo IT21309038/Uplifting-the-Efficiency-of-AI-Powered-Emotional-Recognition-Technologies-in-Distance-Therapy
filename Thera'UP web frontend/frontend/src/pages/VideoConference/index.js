@@ -98,12 +98,31 @@ const Sessions = () => {
   });
   const [recordCount, setRecordCount] = useState(0);
   const [tableRefresh, setTableRefresh] = useState(false);
+  const doctorId = session?.user?.role.id;
+  const currentMonth = new Date().toISOString().slice(0, 7);
 
   //set rows to mock data using useEffect
   useEffect(() => {
-    setRows(mockData);
-    setRecordCount(mockData.length);
-  }, [tableRefresh]);
+    const fetchData = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/schedule/get-schedule-by-doctor/${doctorId}?sortBy=${currentMonth}`
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch data");
+        }
+        const data = await response.json();
+
+        setRows(data.data || []);
+        setRecordCount(data.data.length);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+      }
+    };
+
+    fetchData();
+  }, [doctorId, currentMonth, tableRefresh]);
 
   const openVideoConference = (session_id, patient_name) => {
     console.log("Opening Video Conference for Session ID: ", session_id);
@@ -158,7 +177,7 @@ const Sessions = () => {
       renderCell: (params) => {
         return (
           <Typography variant="caption" color="primary" fontWeight={900}>
-            {params?.row?.patient?.patient_name || "N/A"}
+            {params?.row?.patient?.full_name || "N/A"}
           </Typography>
         );
       },
@@ -203,7 +222,7 @@ const Sessions = () => {
       renderCell: (params) => {
         return (
           <Typography variant="caption" color="primary" fontWeight={900}>
-            {params?.row?.duration || "N/A"}
+            {params?.row?.sessionDuration || "N/A"}
           </Typography>
         );
       },
@@ -333,12 +352,13 @@ const Sessions = () => {
               }}
             >
               <DataGrid
+                getRowId={(row) => row.session_id}
                 getRowHeight={() => "auto"}
                 rows={rows}
                 rowCount={recordCount}
                 columns={columns}
                 pageSizeOptions={[3, 5, 10, 25, 50, 100]}
-                paginationMode="server"
+                paginationMode="client"
                 paginationModel={paginationModel}
                 onPaginationModelChange={setPaginationModel}
                 disableRowSelectionOnClick
