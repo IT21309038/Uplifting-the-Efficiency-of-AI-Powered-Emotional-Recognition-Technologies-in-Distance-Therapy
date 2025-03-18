@@ -1,9 +1,6 @@
 package com.rp.thera.up.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,10 +12,16 @@ import lombok.NoArgsConstructor;
 public class PostTherapy {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Long id;
 
     private String patient_id;
-    private String activity_id;
-    private String allocated_duration;
-    private String remaining_time;
+
+    @ManyToOne
+    @JoinColumn(name = "activity_id")
+    private Activity activity;
+
+    private int allocated_duration; // Now an integer (minutes)
+    private int remaining_time;     // Now an integer (minutes)
+    private boolean completed;
+    private double completion_percentage;
 }

@@ -4,12 +4,11 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class PostTherapyCreateDTO {
+public class ActivityCompletionDTO {
     private String patient_id;
-    private List<ActivityAssignmentDTO> activities; // Activities with therapist-allocated durations
+    private String activity_id;
+    private boolean completed;
 }
