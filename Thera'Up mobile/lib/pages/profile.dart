@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:thera_up/pages/login.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Profile extends StatelessWidget {
   const Profile({Key? key});
@@ -212,7 +213,8 @@ class Profile extends StatelessWidget {
             SizedBox(height: 30),
             // Sign Out Button
             TextButton(
-              onPressed: () {
+              onPressed: () async {
+                await Profile(); // Clear session before navigating
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => const Login()),
@@ -220,12 +222,12 @@ class Profile extends StatelessWidget {
               },
               style: TextButton.styleFrom(
                 backgroundColor: Colors.red[500],
-                minimumSize: Size(200, 50),
+                minimumSize: const Size(200, 50),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(25),
                 ),
               ),
-              child: Text(
+              child: const Text(
                 "Sign out",
                 style: TextStyle(fontSize: 16, color: Colors.white),
               ),
