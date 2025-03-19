@@ -5,6 +5,7 @@ import 'package:thera_up/models/upCommingT_model.dart';
 import 'package:thera_up/pages/schedule.dart';
 import 'package:intl/intl.dart';
 import 'package:thera_up/pages/video_conference.dart';
+import 'package:thera_up/pages/NewPage.dart';
 
 
 class Therapy extends StatefulWidget {
@@ -239,6 +240,30 @@ class _TherapyState extends State<Therapy> {
       ],
     );
   }
+
+  // Column _newBlank(BuildContext context) {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start, // Aligns the button to the left
+  //     children: [
+  //       Align(
+  //         alignment: Alignment.centerLeft,
+  //         child: ElevatedButton(
+  //           onPressed: () {
+  //             Navigator.push(
+  //               context,
+  //               MaterialPageRoute(builder: (context) => MainScreen()), // Navigate to NewPage
+  //             );
+  //           },
+  //           style: ElevatedButton.styleFrom(
+  //             backgroundColor: Colors.blue, // Button color
+  //             foregroundColor: Colors.white, // Text color
+  //           ),
+  //           child: Text("New Page"),
+  //         ),
+  //       ),
+  //     ],
+  //   );
+  // }
 
   Column _pastTherapies(){
     return Column(
@@ -542,7 +567,7 @@ void _joinTherapySession(BuildContext context, String meetingUrl) {
             child: Text("Join Now"),
             onPressed: () {
               Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => VideoConferencePage()));
+              Navigator.push(context, MaterialPageRoute(builder: (context) => MainScreen()));
 
               // print("Joining session: $meetingUrl");
             },
