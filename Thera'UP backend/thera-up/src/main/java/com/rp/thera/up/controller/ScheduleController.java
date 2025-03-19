@@ -30,9 +30,28 @@ public class ScheduleController {
     }
 
     @PostMapping("/select")
-    public ResponseEntity<?> selectSchedule(@RequestBody Schedule scheduleOption) {
+    public ResponseEntity<?> selectSchedule(@RequestBody ScheduleOption scheduleOption) {
         Schedule schedule = schedulingService.selectSchedule(scheduleOption);
         return ResponseHandler.responseBuilder("Session selected successfully",HttpStatus.OK,schedule);
     }
+
+    @GetMapping("/get-schedule-by-doctor/{doctorId}")
+    public ResponseEntity<?> getScheduleByDoctor(@PathVariable Long doctorId, @RequestParam String sortBy) {
+        List<Schedule> scheduleOptions = schedulingService.getScheduleByDoctor(doctorId, sortBy);
+        return ResponseHandler.responseBuilder("Schedule fetched successfully",HttpStatus.OK,scheduleOptions);
+    }
+
+    @GetMapping("/get-schedule-by-patient/{patientId}")
+    public ResponseEntity<?> getScheduleByPatient(@PathVariable Long patientId, @RequestParam String type, @RequestParam (required = false, defaultValue = "0") Integer count) {
+        List<Schedule> scheduleOptions = schedulingService.getScheduleByPatient(patientId, type, count);
+        return ResponseHandler.responseBuilder("Schedule fetched successfully",HttpStatus.OK,scheduleOptions);
+    }
+
+    @PatchMapping("/rate-session/{sessionId}")
+    public ResponseEntity<?> rateSession(@PathVariable String sessionId, @RequestParam double rating) {
+        Schedule schedule = schedulingService.rateSession(sessionId, rating);
+        return ResponseHandler.responseBuilder("Session rated successfully",HttpStatus.OK,schedule);
+    }
+
 
 }

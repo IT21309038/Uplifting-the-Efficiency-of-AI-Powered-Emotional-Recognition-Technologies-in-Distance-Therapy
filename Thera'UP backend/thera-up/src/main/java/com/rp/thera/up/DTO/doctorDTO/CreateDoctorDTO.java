@@ -13,8 +13,11 @@ public class CreateDoctorDTO {
     private String last_name;
     private String license_number;
     private String qualification;
+    private double rate_per_hour;
+    private String experience;
     private String gender;
     private String email;
     private String password;
     private int role_id;
+    private int career_role_id;
 }

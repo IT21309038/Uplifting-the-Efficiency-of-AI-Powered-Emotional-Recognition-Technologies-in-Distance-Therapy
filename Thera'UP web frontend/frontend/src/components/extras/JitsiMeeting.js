@@ -1,110 +1,104 @@
-import { Container, Grid2 } from "@mui/material";
-import { useEffect, useRef } from "react";
+import { useRef, useEffect } from "react";
+import { JitsiMeeting } from "@jitsi/react-sdk";
 
-const JitsiMeeting = ({ roomName, onVideoTrackReceived }) => {
-  const jitsiContainerRef = useRef(null);
+const JitsiMeetingComponent = ({ roomName, onVideoTrackReceived }) => {
   const jitsiApiRef = useRef(null);
+  const videoElementRef = useRef(null);
 
-  useEffect(() => {
-    const loadJitsiScript = () => {
-      if (!window.JitsiMeetExternalAPI) {
-        const script = document.createElement("script");
-        script.src = "https://meetings.pixelcore.lk/external_api.js";
-        script.async = true;
-        script.onload = () => initializeJitsi();
-        script.onerror = () => console.error("Failed to load Jitsi script");
-        document.body.appendChild(script);
-      } else {
-        initializeJitsi();
-      }
-    };
+  // Handle Jitsi API readiness and event listeners
+  const handleApiReady = (externalApi) => {
+    jitsiApiRef.current = externalApi;
 
-    const initializeJitsi = () => {
-      const domain = "meetings.pixelcore.lk";
-      const options = {
-        roomName: roomName,
-        parentNode: jitsiContainerRef.current,
-        userInfo: { displayName: "Therapist" },
-        interfaceConfigOverwrite: {
-          TOOLBAR_BUTTONS: ["microphone", "camera", "hangup", "chat"],
-        },
-        // Add width and height to fill container
-        width: "100%",
-        height: "100%",
-      };
+    // Log when therapist joins
+    externalApi.addListener("videoConferenceJoined", () => {
+      console.log("Therapist joined the conference");
+    });
 
-      try {
-        jitsiApiRef.current = new window.JitsiMeetExternalAPI(domain, options);
+    // Log when a participant joins
+    externalApi.addListener("participantJoined", (participant) => {
+      console.log("Participant joined:", participant);
+    });
 
-        jitsiApiRef.current.addListener("videoConferenceJoined", () => {
-          console.log("Therapist joined the conference");
-        });
-
-        jitsiApiRef.current.addListener("participantJoined", (participant) => {
-          console.log("Participant joined:", participant);
-          checkParticipantVideo(participant.participantId);
-        });
-
-        jitsiApiRef.current.addListener("videoConferenceLeft", () => {
-          console.log("Conference ended");
-        });
-      } catch (error) {
-        console.error("Failed to initialize Jitsi Meet:", error);
-      }
-    };
-
-    const checkParticipantVideo = (participantId) => {
-      const participants = jitsiApiRef.current.getParticipantsInfo();
-      participants.forEach((participant) => {
-        if (
-          participant.participantId === participantId &&
-          participant.displayName !== "Therapist"
-        ) {
-          const videoTrack =
-            jitsiApiRef.current._getParticipantVideo(participantId);
-          if (videoTrack) {
-            console.log("Video track found for participant:", participantId);
-            onVideoTrackReceived(videoTrack);
-          } else {
-            console.warn(
-              "No video track available for participant:",
-              participantId
-            );
-          }
-        }
+    // Handle remote track addition
+    externalApi.addListener("trackAdded", (track) => {
+      console.log("Track added:", {
+        type: track.getType(),
+        isLocal: track.isLocal(),
+        participantId: track.getParticipantId(),
       });
-    };
 
-    loadJitsiScript();
+      if (track.getType() === "video" && !track.isLocal()) {
+        console.log("Remote participant video track detected");
+        try {
+          const mediaStream = track.getTrack
+            ? new MediaStream([track.getTrack()]) // For newer Jitsi API versions
+            : new MediaStream([track.getOriginalStream().getVideoTracks()[0]]); // Fallback for older versions
+          
+          // Pass the MediaStream to the parent component
+          onVideoTrackReceived(mediaStream);
+          attachVideoStream(mediaStream);
+        } catch (error) {
+          console.error("Error processing remote video track:", error);
+        }
+      }
+    });
+  };
 
+  // Attach the video stream to a hidden video element
+  const attachVideoStream = (stream) => {
+    if (!videoElementRef.current) {
+      videoElementRef.current = document.createElement("video");
+      videoElementRef.current.autoplay = true;
+      videoElementRef.current.muted = true; // Ensure no audio feedback
+      videoElementRef.current.style.display = "none";
+      document.body.appendChild(videoElementRef.current);
+      console.log("Video element created and appended");
+    }
+
+    if (videoElementRef.current.srcObject !== stream) {
+      videoElementRef.current.srcObject = stream;
+      console.log("Video stream attached to video element");
+    }
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
       if (jitsiApiRef.current) {
         jitsiApiRef.current.dispose();
-        jitsiApiRef.current = null;
+        console.log("Jitsi API disposed");
+      }
+      if (videoElementRef.current) {
+        videoElementRef.current.srcObject = null;
+        document.body.removeChild(videoElementRef.current);
+        videoElementRef.current = null;
+        console.log("Video element cleaned up");
       }
     };
-  }, [roomName, onVideoTrackReceived]);
+  }, []);
 
   return (
-    <Grid2 container spacing={2}>
-      <Grid2
-        item
-        xs={12} // Changed from xs={4} to use full width
-        sx={{
-          height: 600, // Keep your desired height
-          width: "100%",
-        }}
-      >
-        <div
-          ref={jitsiContainerRef}
-          style={{
-            width: "100%",
-            height: "100%",
-          }}
-        />
-      </Grid2>
-    </Grid2>
+    <JitsiMeeting
+      domain="meetings.pixelcore.lk"
+      roomName={roomName}
+      configOverwrite={{
+        startWithAudioMuted: false,
+        disableModeratorIndicator: true,
+        startScreenSharing: false,
+        enableEmailInStats: false,
+      }}
+      interfaceConfigOverwrite={{
+        TOOLBAR_BUTTONS: ["microphone", "camera", "hangup", "chat"],
+        DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
+      }}
+      userInfo={{ displayName: "Therapist" }}
+      onApiReady={handleApiReady}
+      getIFrameRef={(iframeRef) => {
+        iframeRef.style.width = "100%";
+        iframeRef.style.height = "100%";
+      }}
+    />
   );
 };
 
-export default JitsiMeeting;
+export default JitsiMeetingComponent;
