@@ -11,6 +11,11 @@ const apiDefinitions = {
         return await api.post("doctors/login", payload);
     },
     /****************Auth API End */
+
+    /****************Doctor API Start */
+    getSessionByDoctor: async function (doctorId, currentMonth) {
+        return await api.get(`schedule/get-schedule-by-doctor/${doctorId}?sortBy=${currentMonth}`);
+    }
 };
 
 export default apiDefinitions;

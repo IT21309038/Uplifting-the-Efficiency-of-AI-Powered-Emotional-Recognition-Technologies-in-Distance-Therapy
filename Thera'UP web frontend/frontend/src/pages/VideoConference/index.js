@@ -1,5 +1,6 @@
 import {
   Box,
+  Button,
   Card,
   CardContent,
   Grid2,
@@ -13,79 +14,7 @@ import { DataGrid } from "@mui/x-data-grid";
 import { toast } from "react-toastify";
 import { Tag } from "antd";
 import { Icon } from "@iconify/react";
-
-const mockData = [
-  {
-    id: 1,
-    session_id: "S001",
-    patient: { id: 1, patient_name: "John Doe" },
-    doctor: { id: 1, doctor_name: "Dr. Smith" },
-    date: "2025-03-15",
-    time: "12:10 PM",
-    duration: "30 mins",
-    status: "pending",
-  },
-  {
-    id: 2,
-    session_id: "S002",
-    patient: { id: 2, patient_name: "Jane Smith" },
-    doctor: { id: 2, doctor_name: "Dr. Adams" },
-    date: "2025-03-16",
-    time: "6:45 PM",
-    duration: "145 mins",
-    status: "pending",
-  },
-  {
-    id: 3,
-    session_id: "S003",
-    patient: { id: 3, patient_name: "Robert Brown" },
-    doctor: { id: 3, doctor_name: "Dr. Wilson" },
-    date: "2025-03-17",
-    time: "12:00 PM",
-    duration: "60 mins",
-    status: "pending",
-  },
-  {
-    id: 4,
-    session_id: "S004",
-    patient: { id: 4, patient_name: "Emily Davis" },
-    doctor: { id: 4, doctor_name: "Dr. Johnson" },
-    date: "2025-03-18",
-    time: "1:00 PM",
-    duration: "40 mins",
-    status: "pending",
-  },
-  {
-    id: 5,
-    session_id: "S005",
-    patient: { id: 5, patient_name: "Michael Scott" },
-    doctor: { id: 5, doctor_name: "Dr. Martinez" },
-    date: "2025-03-19",
-    time: "2:00 PM",
-    duration: "50 mins",
-    status: "pending",
-  },
-  {
-    id: 6,
-    session_id: "S006",
-    patient: { id: 6, patient_name: "Sarah Connor" },
-    doctor: { id: 6, doctor_name: "Dr. Lee" },
-    date: "2025-03-20",
-    time: "3:00 PM",
-    duration: "35 mins",
-    status: "pending",
-  },
-  {
-    id: 7,
-    session_id: "S007",
-    patient: { id: 7, patient_name: "David Miller" },
-    doctor: { id: 7, doctor_name: "Dr. Clark" },
-    date: "2025-03-21",
-    time: "4:00 PM",
-    duration: "55 mins",
-    status: "pending",
-  },
-];
+import apiDefinitions from "@/api/apiDefinitions";
 
 const Sessions = () => {
   const route = useRouter();
@@ -101,28 +30,52 @@ const Sessions = () => {
   const doctorId = session?.user?.role.id;
   const currentMonth = new Date().toISOString().slice(0, 7);
 
+  //get current month as 2025-03 format
+  const currentMonthDate = new Date().toISOString().slice(0, 7);
+
   //set rows to mock data using useEffect
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     try {
+  //       const response = await fetch(
+  //         `${process.env.NEXT_PUBLIC_API_URL}/schedule/get-schedule-by-doctor/${doctorId}?sortBy=${currentMonth}`
+  //       );
+  //       if (!response.ok) {
+  //         throw new Error("Failed to fetch data");
+  //       }
+  //       const data = await response.json();
+
+  //       setRows(data.data || []);
+  //       setRecordCount(data.data.length);
+  //     } catch (error) {
+  //       console.error("Error fetching data:", error);
+  //     } finally {
+  //     }
+  //   };
+
+  //   fetchData();
+  // }, [doctorId, currentMonth, tableRefresh]);
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/schedule/get-schedule-by-doctor/${doctorId}?sortBy=${currentMonth}`
-        );
-        if (!response.ok) {
-          throw new Error("Failed to fetch data");
+    apiDefinitions
+      .getSessionByDoctor(doctorId, currentMonthDate)
+      .then((res) => {
+        if (res.data.statusCode === 200) {
+          setRows(res.data.data);
+          setRecordCount(res.data.data.length);
+          toast.success("Data fetched successfully", res.data.message);
+        } else {
+          throw new Error(res.data.message || "Failed to fetch data");
         }
-        const data = await response.json();
-
-        setRows(data.data || []);
-        setRecordCount(data.data.length);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-      }
-    };
-
-    fetchData();
-  }, [doctorId, currentMonth, tableRefresh]);
+      })
+      .catch((err) => {
+        toast.error(err.response?.data?.message || err.message, {
+          toastId: "DoctorError",
+        });
+        setRows([]);
+        setRecordCount(0);
+      });
+  }, [tableRefresh, doctorId, currentMonthDate]);
 
   const openVideoConference = (session_id, patient_name) => {
     console.log("Opening Video Conference for Session ID: ", session_id);
@@ -133,6 +86,10 @@ const Sessions = () => {
       pathname: "/VideoConference/conference",
       query: { session_id, patient_name },
     });
+  };
+
+  const openAgoraConference = () => {
+    route.push("/VideoConference/agorabuild");
   };
 
   const columns = [
@@ -330,6 +287,7 @@ const Sessions = () => {
                   <Typography variant="h5" fontWeight={600}>
                     List of Therapy Sessions for month of :{" "}
                     {new Date().toLocaleString("default", { month: "long" })}
+                    <Button onClick={openAgoraConference}>Click</Button>
                   </Typography>
                 </Grid2>
               </Grid2>
@@ -341,7 +299,7 @@ const Sessions = () => {
           <Card sx={{ boxShadow: 2 }}>
             <Box
               sx={{
-                height: 473,
+                height: "100%",
                 width: "100%",
                 "& .actions": {
                   color: "text.secondary",
@@ -354,6 +312,7 @@ const Sessions = () => {
               <DataGrid
                 getRowId={(row) => row.session_id}
                 getRowHeight={() => "auto"}
+                autoHeight={true}
                 rows={rows}
                 rowCount={recordCount}
                 columns={columns}
