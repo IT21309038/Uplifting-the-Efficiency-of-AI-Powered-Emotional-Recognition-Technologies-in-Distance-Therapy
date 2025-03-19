@@ -62,7 +62,7 @@ const VideoCallUI = () => {
             alignItems="center"
             style={{ height: "80%" }}
           >
-            {/* Remote Users Section (Large) */}
+            {/* Remote Users Section */}
             <Grid2 item xs={12} md={9}>
               <Paper
                 elevation={3}
@@ -71,6 +71,7 @@ const VideoCallUI = () => {
                   height: "100%",
                   background: "#000",
                   display: "flex",
+                  flexWrap: "wrap",
                   alignItems: "center",
                   justifyContent: "center",
                   borderRadius: "10px",
@@ -79,13 +80,38 @@ const VideoCallUI = () => {
               >
                 {remoteUsers.length > 0 ? (
                   remoteUsers.map((user) => (
-                    <RemoteUser
+                    <div
                       key={user.uid}
-                      user={user}
-                      style={{ width: "100%", height: "100%" }}
+                      style={{
+                        width: "50%",
+                        height: "50%",
+                        position: "relative",
+                      }}
                     >
-                      <samp>{user.uid}</samp>
-                    </RemoteUser>
+                      {user.videoTrack ? (
+                        <RemoteUser
+                          user={user}
+                          playAudio={true}
+                          playVideo={true}
+                          style={{ width: "100%", height: "100%" }}
+                        />
+                      ) : (
+                        <p>No video available for User {user.uid}</p>
+                      )}
+                      <span
+                        style={{
+                          position: "absolute",
+                          bottom: "10px",
+                          left: "10px",
+                          // background: "rgba(0, 0, 0, 0.5)",
+                          color: "white",
+                          padding: "5px 10px",
+                          borderRadius: "5px",
+                        }}
+                      >
+                        User {user.uid}
+                      </span>
+                    </div>
                   ))
                 ) : (
                   <p>No remote users</p>
@@ -94,7 +120,7 @@ const VideoCallUI = () => {
             </Grid2>
           </Grid2>
 
-          {/* Small Local User Preview (Top-Right) */}
+          {/* Local User Preview */}
           <div
             style={{
               position: "absolute",
@@ -112,7 +138,7 @@ const VideoCallUI = () => {
               audioTrack={localMicrophoneTrack}
               cameraOn={cameraOn}
               micOn={micOn}
-              playAudio={false}
+              playAudio={true}
               videoTrack={localCameraTrack}
               style={{ width: "100%", height: "100%" }}
             />
