@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:thera_up/pages/schedule_second.dart';
+import 'package:thera_up/pages/schedule_second_new.dart';
 
 class Schedule extends StatefulWidget {
   const Schedule({super.key});
@@ -147,7 +148,7 @@ class _ScheduleState extends State<Schedule> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => ScheduleSecond()),
+                      MaterialPageRoute(builder: (context) => ScheduleSecondNew()),
                     );
                   },
                   // onTap: () {
