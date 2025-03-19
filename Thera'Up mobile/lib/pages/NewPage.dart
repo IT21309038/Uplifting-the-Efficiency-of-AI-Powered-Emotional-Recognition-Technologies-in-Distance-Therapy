@@ -67,6 +67,16 @@ class _MainScreenScreenState extends State<MainScreen> {
       appId: appId,
       channelProfile: ChannelProfileType.channelProfileCommunication,
     ));
+
+    // 🔹 Force Video Encoder Config to Use H264
+    await _engine.setVideoEncoderConfiguration(
+      const VideoEncoderConfiguration(
+        codecType: VideoCodecType.videoCodecH264, // ✅ Force H264 Codec
+        dimensions: VideoDimensions(width: 1280, height: 720), // 720p
+        frameRate: 30,
+        bitrate: 0, // Auto Bitrate
+      ),
+    );
   }
 
   // Enables and starts local video preview

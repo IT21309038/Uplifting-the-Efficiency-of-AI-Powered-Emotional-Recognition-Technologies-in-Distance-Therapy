@@ -8,12 +8,13 @@ import {
   usePublish,
   useRemoteUsers,
 } from "agora-rtc-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AgoraRTC, { AgoraRTCProvider } from "agora-rtc-react";
-import { Container, Button, TextField, Paper, Grid2 } from "@mui/material";
+import { Container, Button, TextField, Paper, Grid } from "@mui/material";
 
 export const VideoCalling = () => {
-  const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+  const client = AgoraRTC.createClient({ mode: "rtc", codec: "h264" });
+
   return (
     <AgoraRTCProvider client={client}>
       <VideoCallUI />
@@ -29,16 +30,31 @@ const VideoCallUI = () => {
   const [token, setToken] = useState("");
   const [micOn, setMic] = useState(true);
   const [cameraOn, setCamera] = useState(true);
+
+  // Local Tracks
   const { localMicrophoneTrack } = useLocalMicrophoneTrack(micOn);
   const { localCameraTrack } = useLocalCameraTrack(cameraOn);
 
-  useJoin(
-    { appid: appId, channel: channel, token: token ? token : null },
-    calling
-  );
+  // Remote Users
+  const remoteUsers = useRemoteUsers();
+
+  // Join Channel
+  useJoin({ appid: appId, channel: channel, token: token || null }, calling);
+
+  // Publish Local Tracks
   usePublish([localMicrophoneTrack, localCameraTrack]);
 
-  const remoteUsers = useRemoteUsers();
+  // Subscribe to Remote Users' Video & Audio
+  useEffect(() => {
+    remoteUsers.forEach((user) => {
+      if (!user.videoTrack) {
+        console.log(`⏳ Waiting for video track from user ${user.uid}...`);
+      } else {
+        console.log(`✅ Video track available for user ${user.uid}`);
+        user.videoTrack?.play();
+      }
+    });
+  }, [remoteUsers]);
 
   return (
     <Container
@@ -49,33 +65,26 @@ const VideoCallUI = () => {
         flexDirection: "column",
         justifyContent: "center",
         alignItems: "center",
-        background: "#222",
         color: "white",
       }}
     >
       {isConnected ? (
         <>
-          <Grid2
-            container
-            spacing={2}
-            justifyContent="center"
-            alignItems="center"
-            style={{ height: "80%" }}
-          >
+          <Grid container spacing={2} justifyContent="center" alignItems="center" style={{ height: "80%" }}>
             {/* Remote Users Section */}
-            <Grid2 item xs={12} md={9}>
+            <Grid item xs={12} md={9}>
               <Paper
                 elevation={3}
                 style={{
-                  width: "100%",
-                  height: "100%",
-                  background: "#000",
                   display: "flex",
                   flexWrap: "wrap",
                   alignItems: "center",
                   justifyContent: "center",
                   borderRadius: "10px",
                   overflow: "hidden",
+                  padding: "10px",
+                  backgroundColor: "#1a1a1a",
+                  color: "white",
                 }}
               >
                 {remoteUsers.length > 0 ? (
@@ -83,8 +92,8 @@ const VideoCallUI = () => {
                     <div
                       key={user.uid}
                       style={{
-                        width: "50%",
-                        height: "50%",
+                        width: "100%",
+                        height: "100%",
                         position: "relative",
                       }}
                     >
@@ -103,7 +112,6 @@ const VideoCallUI = () => {
                           position: "absolute",
                           bottom: "10px",
                           left: "10px",
-                          // background: "rgba(0, 0, 0, 0.5)",
                           color: "white",
                           padding: "5px 10px",
                           borderRadius: "5px",
@@ -117,75 +125,57 @@ const VideoCallUI = () => {
                   <p>No remote users</p>
                 )}
               </Paper>
-            </Grid2>
-          </Grid2>
+            </Grid>
+          </Grid>
 
           {/* Local User Preview */}
-          <div
-            style={{
-              position: "absolute",
-              top: "10px",
-              right: "10px",
-              width: "200px",
-              height: "150px",
-              border: "2px solid white",
-              borderRadius: "10px",
-              overflow: "hidden",
-              background: "#000",
-            }}
-          >
-            <LocalUser
-              audioTrack={localMicrophoneTrack}
-              cameraOn={cameraOn}
-              micOn={micOn}
-              playAudio={true}
-              videoTrack={localCameraTrack}
-              style={{ width: "100%", height: "100%" }}
-            />
-          </div>
+          {localCameraTrack && (
+            <div
+              style={{
+                position: "absolute",
+                top: "10px",
+                right: "10px",
+                width: "200px",
+                height: "150px",
+                border: "2px solid white",
+                borderRadius: "10px",
+                overflow: "hidden",
+              }}
+            >
+              <LocalUser
+                audioTrack={localMicrophoneTrack}
+                cameraOn={cameraOn}
+                micOn={micOn}
+                playAudio={true}
+                videoTrack={localCameraTrack}
+                style={{ width: "100%", height: "100%" }}
+              />
+            </div>
+          )}
 
           {/* Control Buttons */}
-          <Grid2
-            container
-            spacing={2}
-            justifyContent="center"
-            style={{ marginTop: "20px" }}
-          >
-            <Grid2 item>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => setMic(!micOn)}
-              >
+          <Grid container spacing={2} justifyContent="center" style={{ marginTop: "20px" }}>
+            <Grid item>
+              <Button variant="contained" color="primary" onClick={() => setMic(!micOn)}>
                 {micOn ? "Disable Mic" : "Enable Mic"}
               </Button>
-            </Grid2>
-            <Grid2 item>
-              <Button
-                variant="contained"
-                color="secondary"
-                onClick={() => setCamera(!cameraOn)}
-              >
+            </Grid>
+            <Grid item>
+              <Button variant="contained" color="secondary" onClick={() => setCamera(!cameraOn)}>
                 {cameraOn ? "Disable Camera" : "Enable Camera"}
               </Button>
-            </Grid2>
-            <Grid2 item>
-              <Button
-                variant="contained"
-                color="error"
-                onClick={() => setCalling(false)}
-              >
+            </Grid>
+            <Grid item>
+              <Button variant="contained" color="error" onClick={() => setCalling(false)}>
                 End Call
               </Button>
-            </Grid2>
-          </Grid2>
+            </Grid>
+          </Grid>
         </>
       ) : (
-        <Paper
-          style={{ padding: "20px", maxWidth: "400px", textAlign: "center" }}
-        >
-          <Grid2 container spacing={2} direction="column">
-            <Grid2 item>
+        <Paper style={{ padding: "20px", maxWidth: "400px", textAlign: "center" }}>
+          <Grid container spacing={2} direction="column">
+            <Grid item>
               <TextField
                 fullWidth
                 label="App ID"
@@ -193,8 +183,8 @@ const VideoCallUI = () => {
                 value={appId}
                 onChange={(e) => setAppId(e.target.value)}
               />
-            </Grid2>
-            <Grid2 item>
+            </Grid>
+            <Grid item>
               <TextField
                 fullWidth
                 label="Channel Name"
@@ -202,8 +192,8 @@ const VideoCallUI = () => {
                 value={channel}
                 onChange={(e) => setChannel(e.target.value)}
               />
-            </Grid2>
-            <Grid2 item>
+            </Grid>
+            <Grid item>
               <TextField
                 fullWidth
                 label="Token"
@@ -211,8 +201,8 @@ const VideoCallUI = () => {
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
               />
-            </Grid2>
-            <Grid2 item>
+            </Grid>
+            <Grid item>
               <Button
                 variant="contained"
                 color="primary"
@@ -222,8 +212,8 @@ const VideoCallUI = () => {
               >
                 Join Channel
               </Button>
-            </Grid2>
-          </Grid2>
+            </Grid>
+          </Grid>
         </Paper>
       )}
     </Container>

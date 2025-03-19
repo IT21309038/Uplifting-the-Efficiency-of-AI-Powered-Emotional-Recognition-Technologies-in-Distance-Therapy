@@ -89,7 +89,7 @@ const Sessions = () => {
   };
 
   const openAgoraConference = () => {
-    route.push("/VideoConference/agoraconference");
+    route.push("/VideoConference/agorabuild");
   };
 
   const columns = [
