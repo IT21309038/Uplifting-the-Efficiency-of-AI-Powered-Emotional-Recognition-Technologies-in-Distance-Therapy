@@ -3,6 +3,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:thera_up/models/pastT_model.dart';
 import 'package:thera_up/models/upCommingT_model.dart';
 import 'package:thera_up/pages/schedule.dart';
+import 'package:intl/intl.dart';
+import 'package:thera_up/pages/video_conference.dart';
+import 'package:thera_up/pages/NewPage.dart';
+
 
 class Therapy extends StatefulWidget {
    Therapy({Key? key}) : super(key: key);
@@ -130,7 +134,7 @@ class _TherapyState extends State<Therapy> {
         ),
         SizedBox(height: 20),
         Container(
-          height: 240, // Set a fixed height
+          height: 290, // Set a fixed height
           child: ListView.separated(
             separatorBuilder: (context, index) {
               return SizedBox(width: 20);
@@ -199,8 +203,30 @@ class _TherapyState extends State<Therapy> {
                               fontWeight: FontWeight.w500,
                             ),
                           ),
+                          
                         ],
                       ),
+                      SizedBox(height: 10),
+                      Center(
+                        child: ElevatedButton(
+                          onPressed: _isSessionStartingSoon(upComingTherapies[index].date ,upComingTherapies[index].time)
+                              ? () {
+                            _joinTherapySession( this.context ,upComingTherapies[index].time);
+                          }
+                              : null, // Disable button if session is not within 5 minutes,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blueAccent, // Button color
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            "Join",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                      )
+                      )
+
 
                     ],
                   ),
@@ -214,6 +240,30 @@ class _TherapyState extends State<Therapy> {
       ],
     );
   }
+
+  // Column _newBlank(BuildContext context) {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start, // Aligns the button to the left
+  //     children: [
+  //       Align(
+  //         alignment: Alignment.centerLeft,
+  //         child: ElevatedButton(
+  //           onPressed: () {
+  //             Navigator.push(
+  //               context,
+  //               MaterialPageRoute(builder: (context) => MainScreen()), // Navigate to NewPage
+  //             );
+  //           },
+  //           style: ElevatedButton.styleFrom(
+  //             backgroundColor: Colors.blue, // Button color
+  //             foregroundColor: Colors.white, // Text color
+  //           ),
+  //           child: Text("New Page"),
+  //         ),
+  //       ),
+  //     ],
+  //   );
+  // }
 
   Column _pastTherapies(){
     return Column(
@@ -439,4 +489,91 @@ class _TherapyState extends State<Therapy> {
       },
     );
   }
+}
+
+bool _isSessionStartingSoon(String sessionDate ,String sessionTime) {
+  // try {
+  //   // Convert sessionTime to DateTime format
+  //   DateTime now = DateTime.now();
+  //   DateTime sessionDateTime = DateFormat("hh:mm a").parse(sessionTime);
+  //
+  //   // Convert session time to today's date
+  //   DateTime todaySession = DateTime(
+  //       now.year, now.month, now.day,
+  //       sessionDateTime.hour, sessionDateTime.minute
+  //   );
+  //
+  //   // Check if the session starts within the next 5 minutes
+  //   return todaySession.difference(now).inMinutes <= 5 &&
+  //       todaySession.difference(now).inMinutes >= 0;
+  // } catch (e) {
+  //   print("Error parsing session time: $e");
+  //   return false;
+  // }
+  try {
+    // Define the target date (12th July 2021)
+    DateTime targetDate = DateTime(2021, 7, 12);
+
+    // Parse the session date (format: "Monday, 12 July 2021")
+    DateTime parsedDate = DateFormat("EEEE, d MMMM yyyy").parse(sessionDate);
+
+    // Parse the session time (format: "10:00 AM")
+    DateTime parsedTime = DateFormat("hh:mm a").parse(sessionTime);
+
+    // Convert session time to full DateTime
+    DateTime sessionDateTime = DateTime(
+        parsedDate.year, parsedDate.month, parsedDate.day,
+        parsedTime.hour, parsedTime.minute
+    );
+
+    DateTime now = DateTime.now(); // Get current time
+
+    // Check if the session is on 12th July 2021 AND the time has not passed
+    return parsedDate.year == targetDate.year &&
+        parsedDate.month == targetDate.month &&
+        parsedDate.day == targetDate.day ;
+  } catch (e) {
+    print("Error parsing date/time: $e");
+    return false;
+  }
+}
+
+void _joinTherapySession(BuildContext context, String meetingUrl) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text("Joining Therapy Session"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.video_call, size: 50, color: Colors.blue),
+            SizedBox(height: 10),
+            Text(
+              "You are about to join the therapy session.",
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            child: Text("Cancel"),
+            onPressed: () {
+              Navigator.pop(context);
+              print("Join canceled");
+            },
+          ),
+          ElevatedButton(
+            child: Text("Join Now"),
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (context) => MainScreen()));
+
+              // print("Joining session: $meetingUrl");
+            },
+          ),
+        ],
+      );
+    },
+  );
 }
