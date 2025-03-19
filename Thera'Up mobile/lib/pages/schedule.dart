@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:thera_up/pages/schedule_second.dart';
-import 'package:thera_up/pages/schedule_second_new.dart';
+import 'package:thera_up/pages/Question_list/q1Sleep.dart';
 
 class Schedule extends StatefulWidget {
   const Schedule({super.key});
