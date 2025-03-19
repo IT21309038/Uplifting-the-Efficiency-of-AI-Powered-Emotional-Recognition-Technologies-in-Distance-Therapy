@@ -47,8 +47,6 @@ class _TherapyState extends State<Therapy> {
             _scheduleNow(),
             const SizedBox(height: 30),
             _upComing(),
-            const SizedBox(height: 30),
-            _newBlank(context),
             const SizedBox(height: 30,),
             _pastTherapies(),
             const SizedBox(height: 30,),
@@ -213,7 +211,7 @@ class _TherapyState extends State<Therapy> {
                         child: ElevatedButton(
                           onPressed: _isSessionStartingSoon(upComingTherapies[index].date ,upComingTherapies[index].time)
                               ? () {
-                            // _joinTherapySession( this.context ,upComingTherapies[index].time);
+                            _joinTherapySession( this.context ,upComingTherapies[index].time);
                           }
                               : null, // Disable button if session is not within 5 minutes,
                           style: ElevatedButton.styleFrom(
@@ -243,29 +241,29 @@ class _TherapyState extends State<Therapy> {
     );
   }
 
-  Column _newBlank(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start, // Aligns the button to the left
-      children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => MainScreen()), // Navigate to NewPage
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue, // Button color
-              foregroundColor: Colors.white, // Text color
-            ),
-            child: Text("New Page"),
-          ),
-        ),
-      ],
-    );
-  }
+  // Column _newBlank(BuildContext context) {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start, // Aligns the button to the left
+  //     children: [
+  //       Align(
+  //         alignment: Alignment.centerLeft,
+  //         child: ElevatedButton(
+  //           onPressed: () {
+  //             Navigator.push(
+  //               context,
+  //               MaterialPageRoute(builder: (context) => MainScreen()), // Navigate to NewPage
+  //             );
+  //           },
+  //           style: ElevatedButton.styleFrom(
+  //             backgroundColor: Colors.blue, // Button color
+  //             foregroundColor: Colors.white, // Text color
+  //           ),
+  //           child: Text("New Page"),
+  //         ),
+  //       ),
+  //     ],
+  //   );
+  // }
 
   Column _pastTherapies(){
     return Column(
@@ -540,42 +538,42 @@ bool _isSessionStartingSoon(String sessionDate ,String sessionTime) {
   }
 }
 
-// void _joinTherapySession(BuildContext context, String meetingUrl) {
-//   showDialog(
-//     context: context,
-//     builder: (BuildContext context) {
-//       return AlertDialog(
-//         title: Text("Joining Therapy Session"),
-//         content: Column(
-//           mainAxisSize: MainAxisSize.min,
-//           children: [
-//             Icon(Icons.video_call, size: 50, color: Colors.blue),
-//             SizedBox(height: 10),
-//             Text(
-//               "You are about to join the therapy session.",
-//               textAlign: TextAlign.center,
-//             ),
-//           ],
-//         ),
-//         actions: [
-//           TextButton(
-//             child: Text("Cancel"),
-//             onPressed: () {
-//               Navigator.pop(context);
-//               print("Join canceled");
-//             },
-//           ),
-//           ElevatedButton(
-//             child: Text("Join Now"),
-//             onPressed: () {
-//               Navigator.pop(context);
-//               Navigator.push(context, MaterialPageRoute(builder: (context) => VideoConferencePage()));
-//
-//               // print("Joining session: $meetingUrl");
-//             },
-//           ),
-//         ],
-//       );
-//     },
-//   );
-// }
+void _joinTherapySession(BuildContext context, String meetingUrl) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text("Joining Therapy Session"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.video_call, size: 50, color: Colors.blue),
+            SizedBox(height: 10),
+            Text(
+              "You are about to join the therapy session.",
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            child: Text("Cancel"),
+            onPressed: () {
+              Navigator.pop(context);
+              print("Join canceled");
+            },
+          ),
+          ElevatedButton(
+            child: Text("Join Now"),
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (context) => MainScreen()));
+
+              // print("Joining session: $meetingUrl");
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
