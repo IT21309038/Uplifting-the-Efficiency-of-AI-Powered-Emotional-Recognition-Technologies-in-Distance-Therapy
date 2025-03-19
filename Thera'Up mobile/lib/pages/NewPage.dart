@@ -12,8 +12,7 @@ const appId = "b62636e82bae4d77a10929859b2d798f";
 // Fill in the temporary token generated from Agora Console
 const token = "<-- Insert token -->";
 // Fill in the channel name you used to generate the token
-const channel = "test";
-
+const channel = "TEST-001";
 
 // Main App Widget
 class MyApp extends StatelessWidget {
@@ -27,7 +26,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-
 // Video Call Screen Widget
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -38,7 +36,8 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenScreenState extends State<MainScreen> {
   int? _remoteUid; // Stores remote user ID
-  bool _localUserJoined = false; // Indicates if local user has joined the channel
+  bool _localUserJoined =
+      false; // Indicates if local user has joined the channel
   late RtcEngine _engine; // Stores Agora RTC Engine instance
 
   @override
@@ -68,14 +67,11 @@ class _MainScreenScreenState extends State<MainScreen> {
       appId: appId,
       channelProfile: ChannelProfileType.channelProfileCommunication,
     ));
-
-    // Enable audio and video
-    await _engine.enableAudio();
-    await _engine.enableVideo();
   }
 
   // Enables and starts local video preview
   Future<void> _setupLocalVideo() async {
+    await _engine.enableVideo();
     await _engine.startPreview();
   }
 
@@ -91,7 +87,8 @@ class _MainScreenScreenState extends State<MainScreen> {
           debugPrint("Remote user $remoteUid joined");
           setState(() => _remoteUid = remoteUid);
         },
-        onUserOffline: (RtcConnection connection, int remoteUid, UserOfflineReasonType reason) {
+        onUserOffline: (RtcConnection connection, int remoteUid,
+            UserOfflineReasonType reason) {
           debugPrint("Remote user $remoteUid left");
           setState(() => _remoteUid = null);
         },
