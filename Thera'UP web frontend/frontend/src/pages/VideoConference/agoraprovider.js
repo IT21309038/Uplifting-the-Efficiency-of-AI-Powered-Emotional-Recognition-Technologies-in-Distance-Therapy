@@ -11,9 +11,10 @@ import {
 import React, { useState, useEffect, useRef } from "react";
 import "../../styles/styles.css";
 import Image from "next/image";
+import { useRouter } from "next/router";
 
 export const AgoraProvider = ({ session_id }) => {
-
+  const router = useRouter();
   const sessionID = session_id;
   const [calling, setCalling] = useState(false);
   const isConnected = useIsConnected();
@@ -316,6 +317,60 @@ export const AgoraProvider = ({ session_id }) => {
     };
   }, [agoraClient, remoteUsers]);
 
+  // Hangup function
+  const handleHangup = async () => {
+    try {
+      // Stop local tracks
+      if (localMicrophoneTrack) {
+        localMicrophoneTrack.stop();
+        localMicrophoneTrack.close();
+      }
+      if (localCameraTrack) {
+        localCameraTrack.stop();
+        localCameraTrack.close();
+      }
+
+      // Stop remote tracks and unsubscribe
+      remoteUsers.forEach((user) => {
+        if (user.audioTrack) user.audioTrack.stop();
+        if (user.videoTrack) user.videoTrack.stop();
+        agoraClient.unsubscribe(user);
+      });
+
+      // Clear frame intervals
+      Object.keys(frameIntervals.current).forEach((userId) => {
+        clearInterval(frameIntervals.current[userId]);
+        delete frameIntervals.current[userId];
+      });
+
+      // Close WebSocket and send stop signal
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(
+          JSON.stringify({
+            userId: remoteUsers[0]?.uid || "unknown",
+            action: "stop",
+          })
+        );
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+
+      // Leave the Agora channel
+      await agoraClient.leave();
+
+      // Update calling state
+      setCalling(false);
+
+      // Navigate to the specific page
+      router.push("/VideoConference"); // Replace with your target page
+    } catch (error) {
+      console.error("Error during hangup:", error);
+      // Still attempt navigation even if cleanup fails
+      setCalling(false);
+      router.push("/VideoConference");
+    }
+  };
+
   return (
     <>
       <div className="room">
@@ -401,7 +456,13 @@ export const AgoraProvider = ({ session_id }) => {
           </div>
           <button
             className={`btn btn-phone ${calling ? "btn-phone-active" : ""}`}
-            onClick={() => setCalling((a) => !a)}
+            onClick={() => {
+              if (calling) {
+                handleHangup(); // Call hangup function
+              } else {
+                setCalling(true); // Join call
+              }
+            }}
           >
             {calling ? (
               <i className="i-phone-hangup" />
