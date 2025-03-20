@@ -1,7 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:percent_indicator/percent_indicator.dart';
+import 'package:thera_up/models/TherapySession.dart';
 import 'package:thera_up/pages/appointment_suggestions.dart';
+import 'package:thera_up/services/PhysicalApiService.dart';
+import 'package:thera_up/services/SessionService.dart';
+import 'package:http/http.dart' as http;
 
 class Choice extends StatefulWidget {
   final String? selectedSleepOption;
@@ -37,12 +43,72 @@ class _ChoiceState extends State<Choice> {
   String stressLevel = '';
   bool showValidateButton = true;
   int? userAge;
+  bool isLoading = false;
+  bool isGeneratingSession = false;
+
+  final PhysicalApiService _apiService = PhysicalApiService();
 
   @override
   void initState() {
     super.initState();
     _calculateStressScore();
     _getUserAge();
+    _saveDataToApi();
+  }
+
+  Future<void> _generateSessionSchedule() async {
+    setState(() {
+      isGeneratingSession = true;
+    });
+
+    try {
+      final userId = await SessionService.getUserId();
+      if (userId != null) {
+        final url = Uri.parse('https://theraupbackend.pixelcore.lk/api/v1/theraup/schedule/generate-schedule/$userId');
+        final response = await http.get(url);
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          print(response.body);
+          final List<TherapySession> sessions = (data['data'] as List)
+              .map((sessionJson) => TherapySession.fromJson(sessionJson))
+              .toList();
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AppointmentSuggestions(scheduleData: sessions),
+            ),
+          );
+
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to generate schedule: ${response.statusCode}')),
+            );
+          }
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to get user ID')),
+          );
+        }
+      }
+    } catch (e) {
+      print(e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error generating schedule: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isGeneratingSession = false;
+        });
+      }
+    }
   }
 
   void _calculateStressScore() {
@@ -94,6 +160,49 @@ class _ChoiceState extends State<Choice> {
     }
   }
 
+  Future<void> _saveDataToApi() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final userId = await SessionService.getUserId();
+      if (userId != null) {
+        final Map<String, dynamic> data = {
+          "patientId": userId, // Use the actual user ID
+          "sleepOption": widget.selectedSleepOption,
+          "eatOption": widget.selectedEatOption,
+          "overwhelmedOption": widget.selectedOverwhelmedOption,
+          "angryOption": widget.selectedAngryOption,
+          "focusOption": widget.selectedFocusOption,
+          "memoryOption": widget.selectedMemoryOption,
+          "socialOption": widget.selectedSocialOption,
+          "physicalOption": widget.selectedPhysicalOption,
+          "negativeOption": widget.selectedNegativeOption,
+          "stressScore": stressScore?.toDouble(),
+        };
+
+        await _apiService.savePhysicalInfo(data);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to get user ID from session')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving data: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
   void _onValidatePressed() {
     setState(() {
       showValidateButton = false;
@@ -110,8 +219,11 @@ class _ChoiceState extends State<Choice> {
           const SizedBox(height: 20),
           Center(
             child: Image.asset(
-              stressLevel == 'High Stress' ? 'assets/images/high_stress.jpg' :
-              stressLevel == 'Moderate Stress' ? 'assets/images/moderate_stress.jpg' : 'assets/images/low_stress.jpg',
+              stressLevel == 'High Stress'
+                  ? 'assets/images/high_stress.jpg'
+                  : stressLevel == 'Moderate Stress'
+                  ? 'assets/images/moderate_stress.jpg'
+                  : 'assets/images/low_stress.jpg',
               height: 250,
             ),
           ),
@@ -122,23 +234,24 @@ class _ChoiceState extends State<Choice> {
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
           ),
-
           const SizedBox(height: 60),
-
           if (stressScore != null)
             Center(
               child: CircularPercentIndicator(
-                radius: 100.0, // Size of the circle
-                lineWidth: 15.0, // Thickness of the progress bar
-                percent: stressScore! / 40, // Progress value (0.0 to 1.0)
+                radius: 100.0,
+                lineWidth: 15.0,
+                percent: stressScore! / 40,
                 center: Text(
-                  '$stressScore/40', // Percentage in the center
+                  '$stressScore/40',
                   style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
-                progressColor: stressLevel == 'High Stress' ? Colors.red :
-                stressLevel == 'Moderate Stress' ? Colors.orange : Colors.green,
-                backgroundColor: Colors.grey[200]!, // Background color of the circle
-                circularStrokeCap: CircularStrokeCap.round, // Rounded edges for the progress bar
+                progressColor: stressLevel == 'High Stress'
+                    ? Colors.red
+                    : stressLevel == 'Moderate Stress'
+                    ? Colors.orange
+                    : Colors.green,
+                backgroundColor: Colors.grey[200]!,
+                circularStrokeCap: CircularStrokeCap.round,
               ),
             ),
           const SizedBox(height: 60),
@@ -154,7 +267,7 @@ class _ChoiceState extends State<Choice> {
                   borderRadius: BorderRadius.circular(30),
                 ),
                 child: ElevatedButton(
-                  onPressed: _onValidatePressed,
+                  onPressed: isLoading ? null : _onValidatePressed,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
@@ -163,7 +276,9 @@ class _ChoiceState extends State<Choice> {
                       borderRadius: BorderRadius.circular(30),
                     ),
                   ),
-                  child: const Text(
+                  child: isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
                     'Validate',
                     style: TextStyle(fontSize: 18, color: Colors.white),
                   ),
@@ -182,12 +297,7 @@ class _ChoiceState extends State<Choice> {
                   borderRadius: BorderRadius.circular(30),
                 ),
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => AppointmentSuggestions()),
-                    );
-                  },
+                  onPressed: isGeneratingSession ? null : _generateSessionSchedule,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
@@ -196,7 +306,9 @@ class _ChoiceState extends State<Choice> {
                       borderRadius: BorderRadius.circular(30),
                     ),
                   ),
-                  child: const Text(
+                  child: isGeneratingSession
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
                     'Generate Session',
                     style: TextStyle(fontSize: 18, color: Colors.white),
                   ),

@@ -265,7 +265,7 @@ class _TherapyState extends State<Therapy> {
         ),
         SizedBox(height: 20),
         Container(
-          height: 250, // Set a fixed height
+          height: 280, // Set a fixed height
           child: ListView.separated(
             separatorBuilder: (context, index) {
               return SizedBox(width: 20);
