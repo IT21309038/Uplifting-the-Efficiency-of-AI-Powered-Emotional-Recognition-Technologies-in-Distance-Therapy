@@ -53,5 +53,39 @@ public class ScheduleController {
         return ResponseHandler.responseBuilder("Session rated successfully",HttpStatus.OK,schedule);
     }
 
+    @GetMapping("/generate-schedule/{patientId}")
+    public ResponseEntity<?> generateSchedule(@PathVariable Long patientId) {
+        List<Schedule> scheduleOptions = schedulingService.generateSchedule(patientId);
+        return ResponseHandler.responseBuilder("Schedule generated successfully",HttpStatus.OK,scheduleOptions);
+    }
+
+    @GetMapping("/check-schedules/{patientId}")
+    public ResponseEntity<?> checkSchedules(@PathVariable Long patientId) {
+        List<Schedule> pendingSchedules = schedulingService.CheckPendingSchedulesByPatientId(patientId);
+        if (!pendingSchedules.isEmpty()) {
+            return ResponseHandler.responseBuilder("There are pending sessions", HttpStatus.OK, pendingSchedules);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }
+    }
+
+    @GetMapping("/get-all-schedule-by-patient/{patientId}")
+    public ResponseEntity<?> getScheduleByPatient(@PathVariable Long patientId, @RequestParam String status) {
+        List<Schedule> scheduleOptions = schedulingService.getAllSchedulesByPatientAndStatus(patientId, status);
+        return ResponseHandler.responseBuilder("Schedule fetched successfully", HttpStatus.OK, scheduleOptions);
+    }
+
+    @PatchMapping("/pay-session/{sessionId}")
+    public ResponseEntity<?> paySession(@PathVariable String sessionId) {
+        Schedule schedule = schedulingService.paySession(sessionId);
+        return ResponseHandler.responseBuilder("Session paid successfully", HttpStatus.OK, schedule);
+    }
+
+    @DeleteMapping("/delete-pending-sessions/{patientId}")
+    public ResponseEntity<?> deletePendingSessions(@PathVariable Long patientId) {
+        schedulingService.deletePendingSessions(patientId);
+        return ResponseHandler.responseBuilder("Pending sessions deleted successfully", HttpStatus.OK, null);
+    }
+
 
 }

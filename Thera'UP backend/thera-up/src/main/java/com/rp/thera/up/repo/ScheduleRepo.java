@@ -1,5 +1,6 @@
 package com.rp.thera.up.repo;
 
+import com.rp.thera.up.entity.Patient;
 import com.rp.thera.up.entity.Schedule;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -18,5 +19,9 @@ public interface ScheduleRepo extends JpaRepository<Schedule, String> {
     List<Schedule> findByPatientIdAndStatusIn(Long patientId, List<String> statuses);
 
     List<Schedule> findByPatientIdAndStatus(Long patientId, String status);
+
+    List<Schedule> findByDoctorIdAndStatus(Long doctorId, String status);
+
+    Schedule findTopByPatientOrderByDateDescTimeDesc(Patient patient);
 
 }

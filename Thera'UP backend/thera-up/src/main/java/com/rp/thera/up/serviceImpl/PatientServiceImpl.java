@@ -4,9 +4,9 @@ import com.rp.thera.up.DTO.patientDTO.*;
 import com.rp.thera.up.customException.PatientException;
 import com.rp.thera.up.entity.Patient;
 import com.rp.thera.up.entity.PatientGeneralInfo;
-import com.rp.thera.up.repo.GeneralInfoRepo;
-import com.rp.thera.up.repo.PatientRepo;
-import com.rp.thera.up.repo.RoleRepo;
+import com.rp.thera.up.entity.PatientPhysicalInfo;
+import com.rp.thera.up.entity.Schedule;
+import com.rp.thera.up.repo.*;
 import com.rp.thera.up.service.PatientService;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeToken;
@@ -33,6 +33,18 @@ public class PatientServiceImpl implements PatientService {
 
     @Autowired
     private GeneralInfoRepo generalInfoRepo;
+
+    @Autowired
+    private PhysicalInfoRepo physicalInfoRepo;
+
+    @Autowired
+    private GeneralInfoRepo patientGeneralInfoRepo;
+
+    @Autowired
+    private PhysicalInfoRepo patientPhysicalInfoRepo;
+
+    @Autowired
+    private ScheduleRepo scheduleRepo;
 
     @Override
     public void createPatient(PatientPostDTO patientPostDTO) throws PatientException {
@@ -224,6 +236,7 @@ public class PatientServiceImpl implements PatientService {
             patientGeneralInfo.setLivingStatus(livingStatus);
             patientGeneralInfo.setIncome(income);
             patientGeneralInfo.setSocialLife(socialLife);
+            patientGeneralInfo.setCreatedAt(new Date(System.currentTimeMillis()));
 
             generalInfoRepo.save(patientGeneralInfo);
     }
@@ -240,5 +253,46 @@ public class PatientServiceImpl implements PatientService {
         }
 
         return modelMapper.map(patientGeneralInfo, GeneralInfoDTO.class);
+    }
+
+    @Override
+    public void savePhysicalInfo(PhysicalInfoDTO physicalInfoDTO) {
+        Patient patient = patientRepo.findById(Integer.valueOf(physicalInfoDTO.getPatientId()))
+                .orElseThrow(() -> new RuntimeException("Patient not found"));
+
+        PatientPhysicalInfo physicalInfo = new PatientPhysicalInfo();
+        physicalInfo.setPatient(patient);
+        physicalInfo.setSleepOption(physicalInfoDTO.getSleepOption());
+        physicalInfo.setEatOption(physicalInfoDTO.getEatOption());
+        physicalInfo.setOverwhelmedOption(physicalInfoDTO.getOverwhelmedOption());
+        physicalInfo.setAngryOption(physicalInfoDTO.getAngryOption());
+        physicalInfo.setFocusOption(physicalInfoDTO.getFocusOption());
+        physicalInfo.setMemoryOption(physicalInfoDTO.getMemoryOption());
+        physicalInfo.setSocialOption(physicalInfoDTO.getSocialOption());
+        physicalInfo.setPhysicalOption(physicalInfoDTO.getPhysicalOption());
+        physicalInfo.setNegativeOption(physicalInfoDTO.getNegativeOption());
+        physicalInfo.setStressScore(physicalInfoDTO.getStressScore());
+        physicalInfo.setCreatedAt(new Date(System.currentTimeMillis()));
+
+        physicalInfoRepo.save(physicalInfo);
+
+    }
+
+    @Override
+    public ReportDTO getReport(String patientId) {
+        Patient patient = patientRepo.findById(Integer.valueOf(patientId))
+                .orElseThrow(() -> new RuntimeException("Patient not found"));
+
+        PatientGeneralInfo latestGeneralInfo = patientGeneralInfoRepo.findTopByPatientOrderByCreatedAtDesc(patient);
+        PatientPhysicalInfo latestPhysicalInfo = patientPhysicalInfoRepo.findTopByPatientOrderByCreatedAtDesc(patient);
+        Schedule latestSchedule = scheduleRepo.findTopByPatientOrderByDateDescTimeDesc(patient);
+
+        ReportDTO reportDTO = new ReportDTO();
+        reportDTO.setPatient(patient);
+        reportDTO.setLatestGeneralInfo(latestGeneralInfo);
+        reportDTO.setLatestPhysicalInfo(latestPhysicalInfo);
+        reportDTO.setLatestSchedule(latestSchedule);
+
+        return reportDTO;
     }
 }

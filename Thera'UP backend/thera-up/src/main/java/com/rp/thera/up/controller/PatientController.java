@@ -65,4 +65,18 @@ public class PatientController {
         GeneralInfoDTO generalInfoDTO = patientService.getGeneralInfo(patientId);
         return ResponseHandler.responseBuilder("General info retrieved successfully", HttpStatus.OK, generalInfoDTO);
     }
+
+    @PostMapping(value = "/patients/physical-info")
+    public ResponseEntity<?> savePhysicalInfo(@RequestBody PhysicalInfoDTO physicalInfoDTO) {
+        patientService.savePhysicalInfo(physicalInfoDTO);
+        return ResponseHandler.responseBuilder("Physical info saved successfully", HttpStatus.CREATED, null);
+    }
+
+    @GetMapping(value = "/patients/get-report/{patientId}")
+    public ResponseEntity<?> getReport(@PathVariable String patientId) {
+        ReportDTO reportDTO = patientService.getReport(patientId);
+        return ResponseHandler.responseBuilder("Report retrieved successfully", HttpStatus.OK, reportDTO);
+    }
+
+
 }

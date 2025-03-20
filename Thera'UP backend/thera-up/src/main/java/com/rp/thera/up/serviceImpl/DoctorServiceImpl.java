@@ -5,9 +5,12 @@ import com.rp.thera.up.DTO.doctorDTO.LoginDoctorDTO;
 import com.rp.thera.up.DTO.doctorDTO.SucessLoginDoctorDTO;
 import com.rp.thera.up.customException.DoctorException;
 import com.rp.thera.up.entity.Doctor;
+import com.rp.thera.up.entity.Patient;
+import com.rp.thera.up.entity.Schedule;
 import com.rp.thera.up.repo.CareerRoleRepo;
 import com.rp.thera.up.repo.DoctorRepo;
 import com.rp.thera.up.repo.RoleRepo;
+import com.rp.thera.up.repo.ScheduleRepo;
 import com.rp.thera.up.service.DoctorService;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeToken;
@@ -17,8 +20,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 @Service
 public class DoctorServiceImpl implements DoctorService {
@@ -34,6 +36,9 @@ public class DoctorServiceImpl implements DoctorService {
 
     @Autowired
     private ModelMapper modelMapper;
+
+    @Autowired
+    ScheduleRepo scheduleRepo;
 
     @Override
     public Doctor createDoctor(CreateDoctorDTO createDoctorDTO) {
@@ -118,6 +123,7 @@ public class DoctorServiceImpl implements DoctorService {
         }
 
         SucessLoginDoctorDTO successLoginDoctorDTO = modelMapper.map(doctor, SucessLoginDoctorDTO.class);
+        successLoginDoctorDTO.setId(doctor.getId());
         successLoginDoctorDTO.setFirst_name(doctor.getFirst_name());
         successLoginDoctorDTO.setLast_name(doctor.getLast_name());
         successLoginDoctorDTO.setFull_name(doctor.getFull_name());
@@ -125,6 +131,18 @@ public class DoctorServiceImpl implements DoctorService {
         successLoginDoctorDTO.setRole(doctor.getRole());
         successLoginDoctorDTO.setCareer_roles(doctor.getCareerRoles());
 
+        //return success login doctor dto
+
         return successLoginDoctorDTO;
+    }
+
+    @Override
+    public List<Patient> getPatientList(Long doctorId, String status) {
+        List<Schedule> schedules = scheduleRepo.findByDoctorIdAndStatus(doctorId, status);
+        Set<Patient> uniquePatients = new HashSet<>();
+        for (Schedule schedule : schedules) {
+            uniquePatients.add(schedule.getPatient());
+        }
+        return new ArrayList<>(uniquePatients);
     }
 }

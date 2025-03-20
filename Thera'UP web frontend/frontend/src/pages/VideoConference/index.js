@@ -27,7 +27,8 @@ const Sessions = () => {
   });
   const [recordCount, setRecordCount] = useState(0);
   const [tableRefresh, setTableRefresh] = useState(false);
-  const doctorId = session?.user?.role.id;
+  const doctorId = session?.user?.id;
+  console.log("Doctor ID: ", doctorId);
   const currentMonth = new Date().toISOString().slice(0, 7);
 
   //get current month as 2025-03 format
@@ -77,38 +78,14 @@ const Sessions = () => {
       });
   }, [tableRefresh, doctorId, currentMonthDate]);
 
-  const openVideoConference = (session_id, patient_name) => {
-    console.log("Opening Video Conference for Session ID: ", session_id);
-    console.log("Patient Name: ", patient_name);
-
-    // Redirect to Video Conference page with session_id and patient_name as query params
+  const openAgoraConference = (session_id) => {
     route.push({
-      pathname: "/VideoConference/conference",
-      query: { session_id, patient_name },
+      pathname: "/VideoConference/agorabuild",
+      query: { session_id },
     });
   };
 
-  const openAgoraConference = () => {
-    route.push("/VideoConference/agorabuild");
-  };
-
   const columns = [
-    // ... (previous columns remain unchanged until actions) ...
-    {
-      field: "id",
-      headerName: "ID",
-      minWidth: 80,
-      align: "center",
-      headerAlign: "center",
-      flex: 0.25,
-      renderCell: (params) => {
-        return (
-          <Typography variant="caption" color="primary" fontWeight={900}>
-            {params?.row?.id || "N/A"}
-          </Typography>
-        );
-      },
-    },
     {
       field: "session_id",
       headerName: "Session ID",
@@ -257,10 +234,7 @@ const Sessions = () => {
               disabled={!isButtonEnabled}
               onClick={() => {
                 if (isButtonEnabled) {
-                  openVideoConference(
-                    params.row.session_id,
-                    params.row.patient.patient_name
-                  );
+                  openAgoraConference(params.row.session_id);
                 }
               }}
             >
@@ -287,7 +261,6 @@ const Sessions = () => {
                   <Typography variant="h5" fontWeight={600}>
                     List of Therapy Sessions for month of :{" "}
                     {new Date().toLocaleString("default", { month: "long" })}
-                    <Button onClick={openAgoraConference}>Click</Button>
                   </Typography>
                 </Grid2>
               </Grid2>

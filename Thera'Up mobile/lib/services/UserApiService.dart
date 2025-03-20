@@ -4,7 +4,7 @@ import 'package:thera_up/models/User.dart';
 
 
 class UserApiService {
-  static const String baseUrl = "http://20.2.82.154:8085/api/v1/theraup/patients/login";
+  static const String baseUrl = "https://theraupbackend.pixelcore.lk/api/v1/theraup/patients/login";
 
   Future<User?> loginUser(String email, String password) async {
     try {

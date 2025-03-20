@@ -60,6 +60,7 @@ class _LoginState extends State<Login> {
     await prefs.setString('fullName', user.fullName);
     await prefs.setString('email', user.email);
     await prefs.setString('role', user.role);
+    await prefs.setString('dob', user.dob);
   }
 
   @override
