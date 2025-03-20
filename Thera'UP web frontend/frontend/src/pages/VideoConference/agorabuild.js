@@ -9,12 +9,13 @@ const agorabuild = () => {
   //get session_id from the url params
   const urlParams = new URLSearchParams(window.location.search);
   const session_id = urlParams.get("session_id");
+  console.log("Session ID: ", session_id);
 
   return (
     <Grid2 container spacing={2}>
       <Grid2 item size={12} sx={{ height: 400 }}>
-        <AgoraRTCProvider client={client} session_id={session_id}>
-          <AgoraProvider />
+        <AgoraRTCProvider client={client}>
+          <AgoraProvider session_id={session_id}/>
         </AgoraRTCProvider>
       </Grid2>
     </Grid2>
