@@ -21,4 +21,10 @@ public interface PatientService {
     void saveGeneralInfo(GeneralInfoDTO generalInfoDTO);
 
     GeneralInfoDTO getGeneralInfo(String id);
+
+    void savePhysicalInfo(PhysicalInfoDTO physicalInfoDTO);
+
+    ReportDTO getReport(String patientId);
+
+
 }

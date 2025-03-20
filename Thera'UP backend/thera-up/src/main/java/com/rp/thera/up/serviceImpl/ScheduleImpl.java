@@ -33,9 +33,13 @@ public class ScheduleImpl implements SchedulingService {
     @Autowired
     private ScheduleRepo scheduleRepository;
 
+    @Autowired
+    private PhysicalInfoRepo patientPhysicalInfoRepository;
+
     private static final int BUFFER_TIME = 10; // 10-minute break between sessions
     private static final String PAST = "past";
     private static final String UP_COMING = "up_coming";
+    private static final int BUFFER_TIME_MINUTES = 60; // 60-minute buffer time before generating a new schedule
 
     @Override
     public List<Schedule> scheduleSession(StressScoreRecord record) {
@@ -118,6 +122,14 @@ public class ScheduleImpl implements SchedulingService {
     private Optional<LocalTime> findAvailableTimeSlot(Doctor doctor, LocalDate date, int sessionLength) {
         LocalTime clinicStartTime = LocalTime.of(9, 0);
         LocalTime clinicEndTime = LocalTime.of(17, 0);
+
+        // Get the current date and time
+        LocalDateTime now = LocalDateTime.now();
+
+        // If the session date is today, ensure the session time is after the current time plus buffer time
+        if (date.isEqual(now.toLocalDate())) {
+            clinicStartTime = now.toLocalTime().plusMinutes(BUFFER_TIME_MINUTES + 1); // Start after buffer time
+        }
 
         List<Schedule> existingSchedules = scheduleRepository.findByDoctorIdAndDate(doctor.getId(), date);
         existingSchedules.sort(Comparator.comparing(Schedule::getTime));
@@ -246,4 +258,127 @@ public class ScheduleImpl implements SchedulingService {
 
         return schedule;
     }
+
+    @Override
+    public List<Schedule> generateSchedule(Long patientId) {
+        // Step 1: Calculate the average stress score
+        double averageStressScore = calculateAverageStressScore(patientId);
+
+        // Step 2: Determine the stress level based on the average stress score
+        String stressLevel = determineStressLevel(averageStressScore);
+
+        // Step 3: Fetch all doctors
+        List<Doctor> doctors = doctorRepository.findAll();
+        if (doctors.isEmpty()) {
+            throw new IllegalStateException("No available doctors found.");
+        }
+
+        // Step 4: Schedule sessions based on the stress level
+        List<Schedule> options = new ArrayList<>();
+        LocalDate startDate = LocalDate.now().plusDays(1);
+        List<Doctor> availableDoctors = getAvailableDoctors(startDate, doctors);
+
+        int sessionLength = determineSessionLength(stressLevel);
+
+        while (options.size() < 3) {
+            if ("High".equals(stressLevel)) {
+                // High-stress patients: Assign earliest available slots
+                options.addAll(assignSessions(availableDoctors, startDate, sessionLength, 3 - options.size(), Math.toIntExact(patientId)));
+            } else if ("Moderate".equals(stressLevel)) {
+                // Moderate-stress patients: Assign sessions with a balanced approach
+                List<Integer> dayOffsets = Arrays.asList(1, 3, 5);
+                for (int offset : dayOffsets) {
+                    LocalDate sessionDate = startDate.plusDays(offset);
+                    options.addAll(assignSessions(availableDoctors, sessionDate, sessionLength, 1, Math.toIntExact(patientId)));
+                    if (options.size() >= 3) {
+                        break;
+                    }
+                }
+            } else {
+                // Low-stress patients: Assign sessions without prioritizing earliest slots
+                List<Integer> dayOffsets = Arrays.asList(2, 5, 8);
+                for (int offset : dayOffsets) {
+                    LocalDate sessionDate = startDate.plusDays(offset);
+                    options.addAll(assignSessions(availableDoctors, sessionDate, sessionLength, 1, Math.toIntExact(patientId)));
+                    if (options.size() >= 3) {
+                        break;
+                    }
+                }
+            }
+            startDate = startDate.plusDays(1); // Move to the next day if not enough sessions are found
+        }
+
+        return options;
+    }
+
+    @Override
+    public List<Schedule> CheckPendingSchedulesByPatientId(Long patientId) {
+        return scheduleRepository.findByPatientIdAndStatus(patientId, "pending");
+    }
+
+    @Override
+    public List<Schedule> getAllSchedulesByPatientAndStatus(Long patientId, String status) {
+        return scheduleRepository.findByPatientIdAndStatus(patientId, status);
+    }
+
+    @Override
+    public Schedule paySession(String sessionId) {
+        Schedule schedule = scheduleRepository.findById(sessionId)
+                .orElseThrow(() -> new RuntimeException("Session not found"));
+        schedule.setPaymentStatus("completed");
+        return scheduleRepository.save(schedule);
+    }
+
+    @Override
+    public void deletePendingSessions(Long patientId) {
+        List<Schedule> pendingSchedules = scheduleRepository.findByPatientIdAndStatus(patientId, "pending");
+        scheduleRepository.deleteAll(pendingSchedules);
+    }
+
+    private double calculateAverageStressScore(Long patientId) {
+        // Fetch the latest PatientPhysicalInfo
+        PatientPhysicalInfo physicalInfo = patientPhysicalInfoRepository.findLatestPhysicalInfoByPatientId(patientId)
+                .orElseThrow(() -> new IllegalStateException("Patient physical info not found"));
+
+        // Fetch the latest StressScoreRecord
+        Optional<StressScoreRecord> latestStressScoreRecord = stressScoreRecordRepository.findLatestStressScoreRecordByPatientId(patientId.toString());
+
+        // Normalize PatientPhysicalInfo.stressScore to a 0-1 scale
+        double physicalInfoStressScore = physicalInfo.getStressScore() / 40.0;
+
+        // Use StressScoreRecord.stressScore as is (already in 0-1+ scale)
+        double stressRecordStressScore = latestStressScoreRecord.map(StressScoreRecord::getStressScore).orElse(0.0F);
+
+        // Calculate the average stress score
+        if (latestStressScoreRecord.isPresent()) {
+            return (physicalInfoStressScore + stressRecordStressScore) / 2.0;
+        } else {
+            // If no StressScoreRecord exists, use only the normalized PatientPhysicalInfo score
+            return physicalInfoStressScore;
+        }
+    }
+
+    private String determineStressLevel(double stressScore) {
+        if (stressScore > 0.8) {
+            return "High";
+        } else if (stressScore >= 0.4) {
+            return "Moderate";
+        } else {
+            return "Low";
+        }
+    }
+
+    private int determineSessionLength(String stressLevel) {
+        switch (stressLevel) {
+            case "High":
+                return 60; // 60 minutes for high-stress patients
+            case "Moderate":
+                return 45; // 45 minutes for moderate-stress patients
+            case "Low":
+            default:
+                return 30; // 30 minutes for low-stress patients
+        }
+    }
+
+
 }

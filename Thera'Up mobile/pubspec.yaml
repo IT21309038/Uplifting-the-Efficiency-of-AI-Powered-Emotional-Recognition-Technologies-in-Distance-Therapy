@@ -45,7 +45,6 @@ dependencies:
   flutter_svg: ^2.0.15
   agora_rtc_engine: ^6.5.1
   permission_handler: ^11.4.0
-  shared_preferences: ^2.5.2
 
 dev_dependencies:
   flutter_test:
