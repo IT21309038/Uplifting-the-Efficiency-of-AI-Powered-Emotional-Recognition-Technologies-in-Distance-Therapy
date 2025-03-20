@@ -13,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import jakarta.persistence.criteria.Predicate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -100,6 +102,7 @@ public class PostTherapyImpl implements PostTherapyService {
         }
 
         List<PostTherapy> postTherapies = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
         for (ActivityAssignmentDTO activityDTO : activities) {
             String activity_id = activityDTO.getActivity_id();
             int allocated_duration = activityDTO.getAllocated_duration();
@@ -120,6 +123,8 @@ public class PostTherapyImpl implements PostTherapyService {
             postTherapy.setAllocated_duration(allocated_duration);
             postTherapy.setRemaining_time(allocated_duration);
             postTherapy.setCompletion_percentage(0.0);
+            postTherapy.setAssignedDate(now);
+            postTherapy.setAlertLevel("Good");
             postTherapies.add(postTherapy);
         }
 
@@ -131,8 +136,8 @@ public class PostTherapyImpl implements PostTherapyService {
         List<PostTherapy> activities = postTherapyRepo.findByPatientId(patientId);
         int totalActivities = activities.size();
         int completedActivities = (int) activities.stream().filter(PostTherapy::isCompleted).count();
-        int totalTimeAssigned = activities.stream().mapToInt(PostTherapy::getAllocated_duration).sum(); // Calculate total assigned time
-        int totalTimeRemaining = activities.stream().mapToInt(PostTherapy::getRemaining_time).sum();   // Calculate total remaining time
+        int totalTimeAssigned = activities.stream().mapToInt(PostTherapy::getAllocated_duration).sum();
+        int totalTimeRemaining = activities.stream().mapToInt(PostTherapy::getRemaining_time).sum();
 
         String progressStatus;
         if (completedActivities == totalActivities && totalActivities > 0) {
@@ -145,15 +150,20 @@ public class PostTherapyImpl implements PostTherapyService {
 
         List<ActivityProgressDTO> activityProgressList = new ArrayList<>();
         for (PostTherapy postTherapy : activities) {
+            updateAlertLevel(postTherapy);
+            postTherapyRepo.save(postTherapy);
             ActivityProgressDTO activityProgress = new ActivityProgressDTO(
                     postTherapy.getActivity().getActivity_id(),
                     postTherapy.getActivity().getName(),
-                    postTherapy.getCompletion_percentage()
+                    postTherapy.getCompletion_percentage(),
+                    postTherapy.getAlertLevel()
             );
             activityProgressList.add(activityProgress);
         }
 
-        return new PatientProgressDTO(patientId, totalActivities, completedActivities, progressStatus, totalTimeAssigned, totalTimeRemaining, activityProgressList);
+        String patientAlertLevel = determinePatientAlertLevel(activities);
+
+        return new PatientProgressDTO(patientId, totalActivities, completedActivities, progressStatus, totalTimeAssigned, totalTimeRemaining, patientAlertLevel, activityProgressList);
     }
 
     @Override
@@ -173,6 +183,7 @@ public class PostTherapyImpl implements PostTherapyService {
             int remainingMinutes = activity.getRemaining_time();
             activity.setCompletion_percentage(calculateCompletionPercentage(allocatedMinutes, remainingMinutes));
         }
+        updateAlertLevel(activity);
         postTherapyRepo.save(activity);
 
         PatientProgressDTO progress = getPatientProgress(completionDTO.getPatient_id());
@@ -211,6 +222,7 @@ public class PostTherapyImpl implements PostTherapyService {
             postTherapy.setCompleted(false);
             postTherapy.setCompletion_percentage(calculateCompletionPercentage(allocatedMinutes, remainingTime));
         }
+        updateAlertLevel(postTherapy);
         postTherapyRepo.save(postTherapy);
     }
 
@@ -233,17 +245,40 @@ public class PostTherapyImpl implements PostTherapyService {
             double progressPercentage = totalAllocatedTime == 0 ? 0.0 :
                     ((double) (totalAllocatedTime - totalTimeRemaining) / totalAllocatedTime) * 100;
 
+            patientActivities.forEach(this::updateAlertLevel);
+            patientActivities.forEach(postTherapyRepo::save);
+            String alertLevel = determinePatientAlertLevel(patientActivities);
+
             PatientProgressSummaryDTO summary = new PatientProgressSummaryDTO(
                     patientId,
                     totalAssignedActivities,
                     completedActivities,
                     totalTimeRemaining,
-                    progressPercentage
+                    progressPercentage,
+                    alertLevel
             );
             patientSummaries.add(summary);
         }
 
         return new AllPatientsProgressDTO(patientSummaries);
+    }
+
+    @Override
+    public void deleteAssignedActivity(String patientId, String activityId) throws PostTherapyException {
+        if (patientId == null || patientId.isEmpty()) {
+            throw new PostTherapyException("Patient ID is Required", HttpStatus.BAD_REQUEST);
+        }
+        if (activityId == null || activityId.isEmpty()) {
+            throw new PostTherapyException("Activity ID is Required", HttpStatus.BAD_REQUEST);
+        }
+
+        List<PostTherapy> activities = postTherapyRepo.findByPatientId(patientId);
+        PostTherapy postTherapy = activities.stream()
+                .filter(a -> a.getActivity().getActivity_id().equals(activityId))
+                .findFirst()
+                .orElseThrow(() -> new PostTherapyException("Activity " + activityId + " not assigned to patient " + patientId, HttpStatus.NOT_FOUND));
+
+        postTherapyRepo.delete(postTherapy); // Delete the assigned activity
     }
 
     private void handleProgressActions(PatientProgressDTO progress) {
@@ -261,7 +296,36 @@ public class PostTherapyImpl implements PostTherapyService {
     }
 
     private double calculateCompletionPercentage(int allocatedMinutes, int remainingMinutes) {
-        if (allocatedMinutes == 0) return 0.0; // Avoid division by zero
+        if (allocatedMinutes == 0) return 0.0;
         return ((double) (allocatedMinutes - remainingMinutes) / allocatedMinutes) * 100;
+    }
+
+    private void updateAlertLevel(PostTherapy postTherapy) {
+        if (postTherapy.getAssignedDate() == null) {
+            postTherapy.setAssignedDate(LocalDateTime.now());
+        }
+        LocalDateTime now = LocalDateTime.now();
+        long daysSinceAssigned = ChronoUnit.DAYS.between(postTherapy.getAssignedDate(), now);
+
+        if (daysSinceAssigned >= 3) {
+            double progress = postTherapy.getCompletion_percentage();
+            if (progress < 25.0) {
+                postTherapy.setAlertLevel("Immediate");
+            } else if (progress < 75.0) {
+                postTherapy.setAlertLevel("Normal");
+            } else {
+                postTherapy.setAlertLevel("Good");
+            }
+        } else {
+            postTherapy.setAlertLevel("Good");
+        }
+    }
+
+    private String determinePatientAlertLevel(List<PostTherapy> activities) {
+        boolean hasImmediate = activities.stream().anyMatch(a -> "Immediate".equals(a.getAlertLevel()));
+        boolean hasNormal = activities.stream().anyMatch(a -> "Normal".equals(a.getAlertLevel()));
+        if (hasImmediate) return "Immediate";
+        if (hasNormal) return "Normal";
+        return "Good";
     }
 }

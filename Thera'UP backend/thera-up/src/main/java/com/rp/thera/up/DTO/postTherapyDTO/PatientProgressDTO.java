@@ -14,7 +14,8 @@ public class PatientProgressDTO {
     private int totalActivities;
     private int completedActivities;
     private String progressStatus;
-    private int totalTimeAssigned;       // New field: Sum of allocated_duration
-    private int totalTimeRemaining;      // New field: Sum of remaining_time
+    private int totalTimeAssigned;
+    private int totalTimeRemaining;
+    private String alertLevel; // New field: Patient-level alert level
     private List<ActivityProgressDTO> activityProgressList;
 }

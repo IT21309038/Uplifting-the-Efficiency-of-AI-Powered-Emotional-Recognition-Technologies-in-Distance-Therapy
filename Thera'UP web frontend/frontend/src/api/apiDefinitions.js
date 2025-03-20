@@ -31,6 +31,11 @@ const apiDefinitions = {
   getProgressByPatientId: async function (patientId) {
     return await api.get(`postTherapy/progress/${patientId}`);
   },
+  deleteActivityAssigned: async function (patientId, activityId) {
+    return await api.delete(
+      `postTherapy/deleteActivity/${patientId}/${activityId}`
+    );
+  },
 };
 
 export default apiDefinitions;

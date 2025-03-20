@@ -53,4 +53,10 @@ public class PostTherapyController {
         AllPatientsProgressDTO progress = postTherapyService.getAllPatientsProgress();
         return ResponseHandler.responseBuilder("All patients' progress retrieved", HttpStatus.OK, progress);
     }
+
+    @DeleteMapping(value = "/deleteActivity/{patientId}/{activityId}")
+    public ResponseEntity<?> deleteAssignedActivity(@PathVariable String patientId, @PathVariable String activityId) {
+        postTherapyService.deleteAssignedActivity(patientId, activityId);
+        return ResponseHandler.responseBuilder("Assigned activity deleted successfully", HttpStatus.OK, null);
+    }
 }

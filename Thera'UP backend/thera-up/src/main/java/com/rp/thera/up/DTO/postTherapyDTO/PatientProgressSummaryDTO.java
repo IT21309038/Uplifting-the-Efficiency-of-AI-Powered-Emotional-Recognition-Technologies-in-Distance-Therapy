@@ -11,6 +11,7 @@ public class PatientProgressSummaryDTO {
     private String patientId;
     private int totalAssignedActivities;
     private int completedActivities;
-    private int totalTimeRemaining; // In minutes
-    private double progressPercentage; // Overall progress percentage
+    private int totalTimeRemaining;
+    private double progressPercentage;
+    private String alertLevel; // Most critical alert level for the patient
 }
