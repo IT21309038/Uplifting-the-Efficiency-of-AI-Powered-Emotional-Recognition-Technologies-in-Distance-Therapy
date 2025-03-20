@@ -10,5 +10,6 @@ import lombok.NoArgsConstructor;
 public class ActivityProgressDTO {
     private String activity_id;
     private String activity_name;
-    private double completion_percentage; // Already matches the new field
+    private double completion_percentage;
+    private String alertLevel; // Alert level for this activity
 }

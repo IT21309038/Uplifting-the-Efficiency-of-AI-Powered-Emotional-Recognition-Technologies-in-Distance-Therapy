@@ -146,6 +146,7 @@ const App = ({ Component, pageProps: { session, ...pageProps } }) => {
 
   return (
     <>
+      <Toaster position="top-right" />
       <ToastContainer />
       <SessionProvider session={session}>
         <AuthWrapper>
