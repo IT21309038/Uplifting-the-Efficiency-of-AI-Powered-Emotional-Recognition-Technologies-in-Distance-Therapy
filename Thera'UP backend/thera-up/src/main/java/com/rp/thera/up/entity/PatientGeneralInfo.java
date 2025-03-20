@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Date;
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
@@ -24,5 +26,6 @@ public class PatientGeneralInfo {
     private String livingStatus;
     private String income;
     private String socialLife;
+    private Date createdAt;
 
 }

@@ -18,4 +18,14 @@ public interface SchedulingService {
     public List<Schedule> getScheduleByPatient(Long patientId, String type, Integer count);
 
     public Schedule rateSession(String sessionId, double rating);
+
+    public List<Schedule> generateSchedule(Long patientId);
+
+    public List<Schedule> CheckPendingSchedulesByPatientId(Long patientId);
+
+    public List<Schedule> getAllSchedulesByPatientAndStatus(Long patientId,String status);
+
+    public Schedule paySession(String sessionId);
+
+    public void deletePendingSessions(Long patientId);
 }
