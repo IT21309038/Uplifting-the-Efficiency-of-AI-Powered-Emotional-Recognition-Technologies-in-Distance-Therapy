@@ -1,24 +1,52 @@
-import 'package:flutter/material.dart';
+import 'package:thera_up/models/TherapySession.dart';
 
 class AppointmentSuggestionsModel {
-  String doctorName;
-  String image;
-  String designation;
-  String rating;
-  String Date;
-  String time;
-  String price;
-  String duration;
+  final String sessionId;
+  final String doctorName;
+  final String image;
+  final String designation;
+  final String rating;
+  final String date;
+  final String time;
+  final String price;
+  final String duration;
+  final Doctor doctor; // Add this field
+  final String experience; // Add this field
 
-  AppointmentSuggestionsModel({required this.doctorName, required this.image, required this.designation, required this.rating, required this.Date, required this.time, required this.price, required this.duration});
+  AppointmentSuggestionsModel({
+    required this.sessionId,
+    required this.doctorName,
+    required this.image,
+    required this.designation,
+    required this.rating,
+    required this.date,
+    required this.time,
+    required this.price,
+    required this.duration,
+    required this.doctor, // Add this field
+    required this.experience, // Add this field
+  });
 
-  static List<AppointmentSuggestionsModel> getAppointmentSuggestionsModel(){
-    List<AppointmentSuggestionsModel> appointmentSuggestions = [];
+  // Factory constructor to map TherapySession to AppointmentSuggestionsModel
+  factory AppointmentSuggestionsModel.fromTherapySession(TherapySession session) {
+    return AppointmentSuggestionsModel(
+      sessionId: session.sessionId,
+      doctorName: session.doctor.fullName ?? 'Unknown Doctor',
+      image: _getDoctorImage(session.doctor.id), // Use a function to get the image URL
+      designation: session.doctor.qualification ?? 'Unknown Qualification',
+      rating: session.rating?.toString() ?? '0.0',
+      date: session.date ?? 'Unknown Date',
+      time: session.time ?? 'Unknown Time',
+      price: '\$${session.doctor.ratePerHour ?? '0'}',
+      duration: '${session.sessionDuration ?? 0} Minutes',
+      doctor: session.doctor, // Add this field
+      experience: '${session.exprerience ?? 0} Years', // Add this field
+    );
+  }
 
-    appointmentSuggestions.add(AppointmentSuggestionsModel(doctorName: 'Dr. Priya Gamage',image: 'https://media.istockphoto.com/id/1395128697/photo/psychologist-session.jpg?s=612x612&w=0&k=20&c=VL2uUVLzrb8VW6WiT-nyvoM3GkZE8kDicDen4uP-MJ0=', designation: 'Clinical Psychologists', rating: '4.5', Date: '12 December 2024', time: '5:00 PM', price: '\$75', duration: '1 Hour'));
-    appointmentSuggestions.add(AppointmentSuggestionsModel(doctorName: 'Dr. Ashen Pradeep',image: 'https://www.shutterstock.com/image-photo/young-arab-man-psychologist-talking-260nw-2298406395.jpg', designation: 'Counselors', rating: '4.2', Date: '12 December 2025', time: '7:00 PM', price: '\$100', duration: '1 Hour'));
-    appointmentSuggestions.add(AppointmentSuggestionsModel(doctorName: 'Dr. Nimali Karunarathna',image: 'https://t4.ftcdn.net/jpg/04/96/79/09/360_F_496790950_JxUvnh6hkvmi0KB17xCLDvQngrAa26MZ.jpg', designation: 'Behavioral Therapists', rating: '4.6', Date: '12 December 2025', time: '6:00 PM', price: '\$90', duration: '1 Hour'));
-
-    return appointmentSuggestions;
+  // Helper function to get doctor image (you can customize this)
+  static String _getDoctorImage(int doctorId) {
+    // Replace with your logic to fetch doctor images
+    return 'https://t4.ftcdn.net/jpg/04/96/79/09/360_F_496790950_JxUvnh6hkvmi0KB17xCLDvQngrAa26MZ.jpg'; // Placeholder image
   }
 }

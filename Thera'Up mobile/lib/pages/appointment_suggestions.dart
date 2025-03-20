@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:thera_up/models/appointment_suggestion_model.dart';
+import 'package:thera_up/pages/therapy.dart';
+import 'package:thera_up/services/SessionService.dart';
 import 'package:thera_up/widgets/timeSelector.dart';
+import '../models/TherapySession.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class AppointmentSuggestions extends StatefulWidget {
-  const AppointmentSuggestions({super.key});
+  final List<TherapySession> scheduleData; // Add this parameter
+
+  const AppointmentSuggestions({super.key, required this.scheduleData});
 
   @override
   State<AppointmentSuggestions> createState() => _AppointmentSuggestionsState();
@@ -16,13 +23,56 @@ class _AppointmentSuggestionsState extends State<AppointmentSuggestions> {
   @override
   void initState() {
     super.initState();
-    _getAppointmentSuggestions();
+    _mapScheduleDataToModel();
   }
 
-  void _getAppointmentSuggestions() {
+  Future<bool> _confirmBooking(AppointmentSuggestionsModel suggestion) async {
+    try {
+      final userId = await SessionService.getUserId();
+      if (userId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to get user ID')),
+        );
+        return false;
+      }
+
+      final url = Uri.parse('https://theraupbackend.pixelcore.lk/api/v1/theraup/schedule/select');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "sessionCode": suggestion.sessionId,
+          "patientId": userId,
+          "doctorId": suggestion.doctor.id,
+          "date": suggestion.date,
+          "time": suggestion.time,
+          "sessionLength": int.parse(suggestion.duration.replaceAll(RegExp(r'[^0-9]'), '')),
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return true; // Booking confirmed successfully
+      } else {
+        return false; // Failed to confirm booking
+      }
+    } catch (e) {
+      print('Error confirming booking: $e');
+      return false;
+    }
+  }
+
+  void _mapScheduleDataToModel() {
+    if (widget.scheduleData.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No appointment suggestions available.')),
+      );
+      return;
+    }
+
     setState(() {
-      appointmentSuggestions =
-          AppointmentSuggestionsModel.getAppointmentSuggestionsModel();
+      appointmentSuggestions = widget.scheduleData.map((session) {
+        return AppointmentSuggestionsModel.fromTherapySession(session);
+      }).toList();
     });
   }
 
@@ -39,6 +89,7 @@ class _AppointmentSuggestionsState extends State<AppointmentSuggestions> {
             child: ListView.separated(
               padding: EdgeInsets.only(left: 20, right: 20),
               itemBuilder: (context, index) {
+                final suggestion = appointmentSuggestions[index];
                 return Container(
                   padding: EdgeInsets.all(10),
                   decoration: BoxDecoration(
@@ -60,15 +111,14 @@ class _AppointmentSuggestionsState extends State<AppointmentSuggestions> {
                         children: [
                           CircleAvatar(
                             radius: 30,
-                            backgroundImage: NetworkImage(
-                                appointmentSuggestions[index].image),
+                            backgroundImage: NetworkImage(suggestion.image),
                           ),
                           SizedBox(width: 20),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                appointmentSuggestions[index].doctorName,
+                                suggestion.doctorName,
                                 style: TextStyle(
                                   color: Colors.black,
                                   fontSize: 18,
@@ -76,7 +126,7 @@ class _AppointmentSuggestionsState extends State<AppointmentSuggestions> {
                                 ),
                               ),
                               Text(
-                                appointmentSuggestions[index].designation,
+                                suggestion.designation,
                                 style: TextStyle(
                                   color: Color(0xff786f72),
                                   fontSize: 13,
@@ -94,7 +144,7 @@ class _AppointmentSuggestionsState extends State<AppointmentSuggestions> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                appointmentSuggestions[index].rating.toString(),
+                                suggestion.rating,
                                 style: const TextStyle(
                                   color: Colors.grey,
                                   fontSize: 16,
@@ -123,7 +173,7 @@ class _AppointmentSuggestionsState extends State<AppointmentSuggestions> {
                                   children: [
                                     SizedBox(width: 4),
                                     Text(
-                                      '${appointmentSuggestions[index].Date}',
+                                      suggestion.date,
                                       style: TextStyle(
                                         fontSize: 14,
                                       ),
@@ -131,7 +181,7 @@ class _AppointmentSuggestionsState extends State<AppointmentSuggestions> {
                                   ],
                                 ),
                                 Text(
-                                  '${appointmentSuggestions[index].time}',
+                                  suggestion.time,
                                   style: TextStyle(
                                     fontSize: 14,
                                   ),
@@ -146,7 +196,7 @@ class _AppointmentSuggestionsState extends State<AppointmentSuggestions> {
                                   children: [
                                     SizedBox(width: 4),
                                     Text(
-                                      ' ${appointmentSuggestions[index].duration}',
+                                      suggestion.duration,
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w400,
@@ -155,7 +205,7 @@ class _AppointmentSuggestionsState extends State<AppointmentSuggestions> {
                                   ],
                                 ),
                                 Text(
-                                  "${appointmentSuggestions[index].price}",
+                                  suggestion.price,
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
@@ -171,7 +221,7 @@ class _AppointmentSuggestionsState extends State<AppointmentSuggestions> {
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () {
-                            _showPullUpDialog(context);
+                            _showPullUpDialog(context, suggestion); // Pass the suggestion
                           },
                           style: ElevatedButton.styleFrom(
                             padding: EdgeInsets.zero,
@@ -217,7 +267,7 @@ class _AppointmentSuggestionsState extends State<AppointmentSuggestions> {
     );
   }
 
-  void _showPullUpDialog(BuildContext context) {
+  void _showPullUpDialog(BuildContext context, AppointmentSuggestionsModel suggestion) {
     showModalBottomSheet(
       context: context,
       shape: RoundedRectangleBorder(
@@ -240,6 +290,7 @@ class _AppointmentSuggestionsState extends State<AppointmentSuggestions> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Handle Bar
                       Center(
                         child: Container(
                           width: 50,
@@ -251,23 +302,32 @@ class _AppointmentSuggestionsState extends State<AppointmentSuggestions> {
                         ),
                       ),
                       SizedBox(height: 20),
+
+                      // Doctor Name
                       Text(
-                        "Dr. Kevon Lane",
+                        suggestion.doctorName,
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+
+                      // Doctor Designation
                       Text(
-                        "Gynecologist",
+                        suggestion.designation,
                         style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                       ),
+
+                      // Doctor Qualification
                       SizedBox(height: 10),
                       Text(
-                        "MBBS, BCS, (Health), MCPS (Gynae & Obs), MRCOG (UK)",
+                        suggestion.designation, // Assuming designation is the qualification
                         style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                       ),
+
                       SizedBox(height: 20),
+
+                      // Experience and Rating Section
                       Container(
                         width: double.infinity,
                         padding: EdgeInsets.all(16),
@@ -279,6 +339,7 @@ class _AppointmentSuggestionsState extends State<AppointmentSuggestions> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
+                            // Total Experience
                             Column(
                               children: [
                                 Row(
@@ -286,16 +347,20 @@ class _AppointmentSuggestionsState extends State<AppointmentSuggestions> {
                                     Icon(Icons.work, color: Colors.grey[600]),
                                     SizedBox(width: 8),
                                     Text(
-                                      "05+ Years",
+                                      "2+ Years", // Use the experience from the suggestion
                                       style: TextStyle(fontWeight: FontWeight.bold),
                                     ),
                                   ],
                                 ),
-                                Text("Total Experience",
-                                    style: TextStyle(
-                                        fontSize: 14, color: Colors.grey[600])),
+                                Text(
+                                  "Total Experience",
+                                  style: TextStyle(
+                                      fontSize: 14, color: Colors.grey[600]),
+                                ),
                               ],
                             ),
+
+                            // Rating
                             Column(
                               children: [
                                 Row(
@@ -303,20 +368,25 @@ class _AppointmentSuggestionsState extends State<AppointmentSuggestions> {
                                     Icon(Icons.star, color: Colors.amber),
                                     SizedBox(width: 8),
                                     Text(
-                                      "4.9 (500)",
+                                      "${suggestion.rating} (500)", // Use the rating from the suggestion
                                       style: TextStyle(fontWeight: FontWeight.bold),
                                     ),
                                   ],
                                 ),
-                                Text("Rating",
-                                    style: TextStyle(
-                                        fontSize: 14, color: Colors.grey[600])),
+                                Text(
+                                  "Rating",
+                                  style: TextStyle(
+                                      fontSize: 14, color: Colors.grey[600]),
+                                ),
                               ],
                             ),
                           ],
                         ),
                       ),
+
                       SizedBox(height: 20),
+
+                      // Consultation Fee
                       Container(
                         width: double.infinity,
                         padding: EdgeInsets.all(16),
@@ -330,18 +400,23 @@ class _AppointmentSuggestionsState extends State<AppointmentSuggestions> {
                             Icon(Icons.attach_money, color: Colors.grey[600]),
                             SizedBox(width: 8),
                             Text(
-                              "\$200",
+                              suggestion.price, // Use the price from the suggestion
                               style: TextStyle(
                                   fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                             SizedBox(width: 8),
-                            Text("Consultation fee",
-                                style: TextStyle(
-                                    fontSize: 14, color: Colors.grey[600])),
+                            Text(
+                              "Consultation fee",
+                              style: TextStyle(
+                                  fontSize: 14, color: Colors.grey[600]),
+                            ),
                           ],
                         ),
                       ),
+
                       SizedBox(height: 20),
+
+                      // Available Time Section
                       Text(
                         "Available Time",
                         style: TextStyle(
@@ -350,13 +425,33 @@ class _AppointmentSuggestionsState extends State<AppointmentSuggestions> {
                         ),
                       ),
                       SizedBox(height: 10),
-                      TimeSlotSelector(),
+
+                      // Time Slot Selector
+                      // TimeSlotSelector(),
+
                       SizedBox(height: 20),
+
+                      // Confirm Button
                       Center(
                         child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            _showConfirmPaymentSheet(context);
+                          onPressed: () async {
+                            // Call the API to confirm the booking
+                            final success = await _confirmBooking(suggestion);
+                            if (success) {
+                              Navigator.pop(context); // Close the dialog
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Booking confirmed successfully!')),
+                              );
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (context) => Therapy()), // Replace with your Therapy page widget
+                              );
+
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Failed to confirm booking. Please try again.')),
+                              );
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.teal,
