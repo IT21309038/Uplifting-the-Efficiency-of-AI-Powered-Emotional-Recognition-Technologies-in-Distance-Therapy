@@ -123,6 +123,7 @@ public class DoctorServiceImpl implements DoctorService {
         }
 
         SucessLoginDoctorDTO successLoginDoctorDTO = modelMapper.map(doctor, SucessLoginDoctorDTO.class);
+        successLoginDoctorDTO.setId(doctor.getId());
         successLoginDoctorDTO.setFirst_name(doctor.getFirst_name());
         successLoginDoctorDTO.setLast_name(doctor.getLast_name());
         successLoginDoctorDTO.setFull_name(doctor.getFull_name());

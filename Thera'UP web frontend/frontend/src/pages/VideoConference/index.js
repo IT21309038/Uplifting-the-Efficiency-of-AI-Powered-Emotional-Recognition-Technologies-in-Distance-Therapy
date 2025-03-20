@@ -28,6 +28,7 @@ const Sessions = () => {
   const [recordCount, setRecordCount] = useState(0);
   const [tableRefresh, setTableRefresh] = useState(false);
   const doctorId = session?.user?.role.id;
+  console.log("Doctor ID: ", doctorId);
   const currentMonth = new Date().toISOString().slice(0, 7);
 
   //get current month as 2025-03 format
@@ -88,8 +89,11 @@ const Sessions = () => {
     });
   };
 
-  const openAgoraConference = () => {
-    route.push("/VideoConference/agorabuild");
+  const openAgoraConference = (session_id) => {
+    route.push({
+      pathname: "/VideoConference/agorabuild",
+      query: { session_id },
+    });
   };
 
   const columns = [
@@ -257,10 +261,7 @@ const Sessions = () => {
               disabled={!isButtonEnabled}
               onClick={() => {
                 if (isButtonEnabled) {
-                  openVideoConference(
-                    params.row.session_id,
-                    params.row.patient.patient_name
-                  );
+                  openAgoraConference(params.row.session_id);
                 }
               }}
             >
