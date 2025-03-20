@@ -47,4 +47,10 @@ public class PostTherapyController {
         postTherapyService.updateRemainingTime(updateRemainingTimeDTO);
         return ResponseHandler.responseBuilder("Remaining time updated successfully", HttpStatus.OK, null);
     }
+
+    @GetMapping(value = "/allPatientsProgress")
+    public ResponseEntity<?> getAllPatientsProgress() {
+        AllPatientsProgressDTO progress = postTherapyService.getAllPatientsProgress();
+        return ResponseHandler.responseBuilder("All patients' progress retrieved", HttpStatus.OK, progress);
+    }
 }

@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -74,7 +75,7 @@ public class PostTherapyImpl implements PostTherapyService {
 
         List<Activity> recommendedActivities = activityRepo.findAll(spec);
         if (recommendedActivities.isEmpty()) {
-            throw new PostTherapyException("No suitable activities found for the given preferences", HttpStatus.BAD_REQUEST);
+            throw new PostTherapyException("No suitable activities found for the given preferences", HttpStatus.NOT_FOUND);
         }
 
         return recommendedActivities.stream()
@@ -118,7 +119,7 @@ public class PostTherapyImpl implements PostTherapyService {
             postTherapy.setActivity(activity);
             postTherapy.setAllocated_duration(allocated_duration);
             postTherapy.setRemaining_time(allocated_duration);
-            postTherapy.setCompletion_percentage(0.0); // Initially 0% completed
+            postTherapy.setCompletion_percentage(0.0);
             postTherapies.add(postTherapy);
         }
 
@@ -130,6 +131,8 @@ public class PostTherapyImpl implements PostTherapyService {
         List<PostTherapy> activities = postTherapyRepo.findByPatientId(patientId);
         int totalActivities = activities.size();
         int completedActivities = (int) activities.stream().filter(PostTherapy::isCompleted).count();
+        int totalTimeAssigned = activities.stream().mapToInt(PostTherapy::getAllocated_duration).sum(); // Calculate total assigned time
+        int totalTimeRemaining = activities.stream().mapToInt(PostTherapy::getRemaining_time).sum();   // Calculate total remaining time
 
         String progressStatus;
         if (completedActivities == totalActivities && totalActivities > 0) {
@@ -150,7 +153,7 @@ public class PostTherapyImpl implements PostTherapyService {
             activityProgressList.add(activityProgress);
         }
 
-        return new PatientProgressDTO(patientId, totalActivities, completedActivities, progressStatus, activityProgressList);
+        return new PatientProgressDTO(patientId, totalActivities, completedActivities, progressStatus, totalTimeAssigned, totalTimeRemaining, activityProgressList);
     }
 
     @Override
@@ -164,7 +167,7 @@ public class PostTherapyImpl implements PostTherapyService {
         activity.setCompleted(completionDTO.isCompleted());
         if (completionDTO.isCompleted()) {
             activity.setRemaining_time(0);
-            activity.setCompletion_percentage(100.0); // 100% when completed
+            activity.setCompletion_percentage(100.0);
         } else {
             int allocatedMinutes = activity.getAllocated_duration();
             int remainingMinutes = activity.getRemaining_time();
@@ -209,6 +212,38 @@ public class PostTherapyImpl implements PostTherapyService {
             postTherapy.setCompletion_percentage(calculateCompletionPercentage(allocatedMinutes, remainingTime));
         }
         postTherapyRepo.save(postTherapy);
+    }
+
+    @Override
+    public AllPatientsProgressDTO getAllPatientsProgress() {
+        List<PostTherapy> allActivities = postTherapyRepo.findAll();
+        Map<String, List<PostTherapy>> activitiesByPatient = allActivities.stream()
+                .collect(Collectors.groupingBy(PostTherapy::getPatient_id));
+
+        List<PatientProgressSummaryDTO> patientSummaries = new ArrayList<>();
+        for (Map.Entry<String, List<PostTherapy>> entry : activitiesByPatient.entrySet()) {
+            String patientId = entry.getKey();
+            List<PostTherapy> patientActivities = entry.getValue();
+
+            int totalAssignedActivities = patientActivities.size();
+            int completedActivities = (int) patientActivities.stream().filter(PostTherapy::isCompleted).count();
+            int totalTimeRemaining = patientActivities.stream().mapToInt(PostTherapy::getRemaining_time).sum();
+            int totalAllocatedTime = patientActivities.stream().mapToInt(PostTherapy::getAllocated_duration).sum();
+
+            double progressPercentage = totalAllocatedTime == 0 ? 0.0 :
+                    ((double) (totalAllocatedTime - totalTimeRemaining) / totalAllocatedTime) * 100;
+
+            PatientProgressSummaryDTO summary = new PatientProgressSummaryDTO(
+                    patientId,
+                    totalAssignedActivities,
+                    completedActivities,
+                    totalTimeRemaining,
+                    progressPercentage
+            );
+            patientSummaries.add(summary);
+        }
+
+        return new AllPatientsProgressDTO(patientSummaries);
     }
 
     private void handleProgressActions(PatientProgressDTO progress) {
