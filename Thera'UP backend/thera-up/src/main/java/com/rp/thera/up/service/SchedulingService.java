@@ -26,4 +26,6 @@ public interface SchedulingService {
     public List<Schedule> getAllSchedulesByPatientAndStatus(Long patientId,String status);
 
     public Schedule paySession(String sessionId);
+
+    public void deletePendingSessions(Long patientId);
 }

@@ -81,4 +81,11 @@ public class ScheduleController {
         return ResponseHandler.responseBuilder("Session paid successfully", HttpStatus.OK, schedule);
     }
 
+    @DeleteMapping("/delete-pending-sessions/{patientId}")
+    public ResponseEntity<?> deletePendingSessions(@PathVariable Long patientId) {
+        schedulingService.deletePendingSessions(patientId);
+        return ResponseHandler.responseBuilder("Pending sessions deleted successfully", HttpStatus.OK, null);
+    }
+
+
 }

@@ -329,6 +329,12 @@ public class ScheduleImpl implements SchedulingService {
         return scheduleRepository.save(schedule);
     }
 
+    @Override
+    public void deletePendingSessions(Long patientId) {
+        List<Schedule> pendingSchedules = scheduleRepository.findByPatientIdAndStatus(patientId, "pending");
+        scheduleRepository.deleteAll(pendingSchedules);
+    }
+
     private double calculateAverageStressScore(Long patientId) {
         // Fetch the latest PatientPhysicalInfo
         PatientPhysicalInfo physicalInfo = patientPhysicalInfoRepository.findLatestPhysicalInfoByPatientId(patientId)
