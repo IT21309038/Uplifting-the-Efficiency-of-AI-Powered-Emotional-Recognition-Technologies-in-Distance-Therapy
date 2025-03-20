@@ -11,9 +11,32 @@ import {
 import React, { useState, useEffect, useRef } from "react";
 import "../../styles/styles.css";
 import Image from "next/image";
+import AudioBufferToWav from "audiobuffer-to-wav";
+import { Line } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
+
+const audioBuffers = {}; // Store recorded chunks for each remote user
 
 export const AgoraProvider = ({ session_id }) => {
-
   const sessionID = session_id;
   const [calling, setCalling] = useState(false);
   const isConnected = useIsConnected();
@@ -38,6 +61,13 @@ export const AgoraProvider = ({ session_id }) => {
   const frameIntervals = useRef({});
   const wsRef = useRef(null);
   const processedRefs = useRef({}); // Fix the typo here
+
+  const audioRecorders = useRef({}); // Store active MediaRecorders
+  const audioIntervals = useRef({}); // Store setIntervals for audio capture
+  const emotionData = useRef([]); // Store detected emotions and stress levels
+  const [sessionReport, setSessionReport] = useState(null); // Store session report
+
+  const [audioClips, setAudioClips] = useState([]); // Store audio clips and responses
 
   // WebSocket connection management
   useEffect(() => {
@@ -257,10 +287,149 @@ export const AgoraProvider = ({ session_id }) => {
         const audioTrack = user.audioTrack;
         if (audioTrack) {
           try {
-            audioTrack.play();
-            console.log(`User ${user.uid} audio playback started`);
+            console.log(`🔊 Remote User ${user.uid} audio track detected`);
+            audioTrack.play(); // Ensures track is active
+
+            // ✅ Log track details
+            console.log(
+              `🔍 Track readyState: ${
+                audioTrack.getMediaStreamTrack().readyState
+              }`
+            );
+
+            // ✅ Create a MediaStream from the Agora remote audio track
+            const stream = new MediaStream([audioTrack.getMediaStreamTrack()]);
+            console.log("✅ Created MediaStream for audio recording", stream);
+
+            const mediaRecorder = new MediaRecorder(stream, {
+              mimeType: "audio/webm;codecs=opus",
+            });
+
+            audioBuffers[user.uid] = []; // Store recorded chunks per user
+
+            try {
+              console.log(`🎤 Starting MediaRecorder for User ${user.uid}...`);
+
+              mediaRecorder.start();
+              console.log(`🎥 MediaRecorder state: ${mediaRecorder.state}`);
+            } catch (error) {
+              console.error(
+                `❌ Failed to start MediaRecorder for User ${user.uid}:`,
+                error
+              );
+            }
+
+            mediaRecorder.ondataavailable = async (event) => {
+              if (event.data.size > 0) {
+                console.log(`✅ Received audio chunk from User ${user.uid}`);
+                audioBuffers[user.uid].push(event.data);
+              }
+            };
+            console.log("aaaaa");
+            // ✅ Send audio to API every 10 seconds
+            // audioIntervals[user.uid] = setInterval(async () => {
+            //   console.log(
+            //     `🛑 Stopping MediaRecorder for User ${user.uid} to finalize WebM file.`
+            //   );
+
+            //   mediaRecorder.stop();
+            //   setTimeout(async () => {
+            //     console.log(
+            //       `🔄 Restarting MediaRecorder for User ${user.uid}...`
+            //     );
+            //     mediaRecorder.start();
+            //   }, 500);
+            //   console.log("hhhhhhhh");
+            //   if (audioBuffers[user.uid].length > 0) {
+            //     const webmBlob = new Blob(audioBuffers[user.uid], {
+            //       type: "audio/webm",
+            //     });
+
+            //     // ✅ Convert WebM to WAV
+            //     const wavBlob = await convertWebMtoWAV(webmBlob);
+
+            //     // ✅ Send to API
+            //     await sendAudioToAPI(wavBlob, user.uid);
+
+            //     // ✅ Clear buffer after sending
+            //     audioBuffers[user.uid] = [];
+            //   }
+            // }, 10000);
+
+            audioIntervals[user.uid] = setInterval(async () => {
+              if (mediaRecorder.state === "recording") {
+                console.log(
+                  `🛑 Stopping MediaRecorder for User ${user.uid} to finalize WebM file.`
+                );
+
+                mediaRecorder.stop(); // Stop ensures WebM file is finalized
+
+                mediaRecorder.onstop = async () => {
+                  console.log(
+                    `✅ MediaRecorder stopped for User ${user.uid}, processing audio...`
+                  );
+
+                  if (audioBuffers[user.uid].length > 0) {
+                    const webmBlob = new Blob(audioBuffers[user.uid], {
+                      type: "audio/webm",
+                    });
+
+                    // ✅ Convert WebM to WAV
+                    const wavBlob = await convertWebMtoWAV(webmBlob);
+
+                    // ✅ Send to API
+                    await sendAudioToAPI(wavBlob, user.uid);
+
+                    // ✅ Clear buffer after sending
+                    audioBuffers[user.uid] = [];
+                  }
+
+                  setTimeout(() => {
+                    console.log(
+                      `🔄 Restarting MediaRecorder for User ${user.uid}...`
+                    );
+                    try {
+                      mediaRecorder.start();
+                      console.log(
+                        `🎥 MediaRecorder state: ${mediaRecorder.state}`
+                      );
+                    } catch (error) {
+                      console.error(
+                        `❌ Failed to start MediaRecorder for User ${user.uid}:`,
+                        error
+                      );
+                    }
+                  }, 500);
+                };
+              }
+            }, 15000);
+
+            // ✅ Manually trigger `ondataavailable`
+            setInterval(() => {
+              if (mediaRecorder.state === "recording") {
+                // ✅ Check if recording
+                console.log(
+                  `🔄 Forcing ondataavailable for User ${user.uid}...`
+                );
+                mediaRecorder.requestData();
+              } else {
+                console.warn(
+                  `⚠️ MediaRecorder is in '${mediaRecorder.state}' state, skipping requestData()`
+                );
+              }
+            }, 3000);
+
+            mediaRecorder.ondataavailable = async (event) => {
+              if (event.data.size > 0) {
+                console.log(`✅ Received audio chunk from User ${user.uid}`);
+                audioBuffers[user.uid].push(event.data);
+              }
+            };
           } catch (error) {
-            console.error(`Error playing audio for User ${user.uid}:`, error);
+            console.error(
+              `❌ Error processing audio for User ${user.uid}:`,
+              error
+            );
           }
         }
       }
@@ -315,6 +484,249 @@ export const AgoraProvider = ({ session_id }) => {
       });
     };
   }, [agoraClient, remoteUsers]);
+
+  const stressValues = {
+    angry: 90,
+    calm: -20,
+    disgust: 70,
+    fear: 75,
+    happy: -30,
+    neutral: 0,
+    sad: 60,
+    surprise: -5,
+  };
+
+  const calculateStress = (probabilities) => {
+    if (!probabilities || typeof probabilities !== "object") {
+      console.error("⚠️ Invalid probabilities object:", probabilities);
+      return 0.0; // Default stress level if data is missing
+    }
+    let stressLevel = 0;
+    let dominantEmotion = null;
+    let maxProbability = 0;
+
+    for (const [emotion, probability] of Object.entries(probabilities)) {
+      if (probability > maxProbability) {
+        maxProbability = probability;
+        dominantEmotion = emotion;
+      }
+    }
+
+    for (const [emotion, probability] of Object.entries(probabilities)) {
+      const stressValue = stressValues[emotion] || 0;
+      const weight = emotion === dominantEmotion ? 2 : 1;
+      stressLevel += probability * stressValue * weight;
+    }
+
+    const minStress = -30;
+    const maxStress = 90;
+    const normalizedStress =
+      ((stressLevel - minStress) / (maxStress - minStress)) * 100;
+
+    return Math.min(100, Math.max(0, normalizedStress));
+  };
+
+  const calculateMovingAverage = (data, windowSize) => {
+    if (data.length < windowSize) return null;
+
+    const movingAverage =
+      data.slice(-windowSize).reduce((sum, clip) => sum + clip.stressLevel, 0) /
+      windowSize;
+
+    return movingAverage;
+  };
+
+  const movingAverages = audioClips.map((_, index) =>
+    calculateMovingAverage(audioClips.slice(0, index + 1), 5)
+  );
+
+  const chartData = {
+    labels: audioClips.map((clip) => {
+      const localTime = new Date(clip.timestamp).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+      return localTime; // Use formatted local time instead of raw timestamp
+    }),
+    datasets: [
+      {
+        label: "Stress Level",
+        data: audioClips.map((clip) => clip.stressLevel),
+        borderColor: "rgba(54, 162, 235, 1)",
+        backgroundColor: "rgba(54, 162, 235, 0.2)",
+        tension: 0.4,
+      },
+      {
+        label: "Average Stress Level (Last 5 Clips)",
+        data: movingAverages,
+        borderColor: "rgba(255, 99, 132, 1)",
+        backgroundColor: "rgba(255, 99, 132, 0.2)",
+        tension: 0.4,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: "top",
+      },
+      title: {
+        display: true,
+        text: "Stress Levels Over Time",
+      },
+    },
+    scales: {
+      x: {
+        type: "category",
+        ticks: {
+          autoSkip: false,
+        },
+      },
+      y: {
+        beginAtZero: true,
+        min: 0,
+        max: 100,
+        ticks: {
+          stepSize: 10,
+        },
+      },
+    },
+  };
+
+  const updateChart = (response) => {
+    const stressLevel = calculateStress(response.probabilities);
+    const timestamp = new Date().toISOString();
+
+    // Store each clip with its API response
+    setAudioClips((prev) => [...prev, { response, stressLevel, timestamp }]);
+
+    // Save detected emotion and stress level
+    if (response && !response.error) {
+      emotionData.current.push({
+        timestamp,
+        emotion: response.predicted_emotion,
+        // stress_level: Math.floor(Math.random() * 100), // Simulating stress level (replace with real data)
+        stress_level: stressLevel,
+      });
+    }
+  };
+
+  const generateSessionReport = async () => {
+    if (emotionData.current.length === 0) return;
+
+    const requestData = {
+      session_id: "TEST-001",
+      data: emotionData.current,
+    };
+
+    console.log("oooooo", JSON.stringify(requestData));
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:8001/generate-session-report/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestData),
+        }
+      );
+
+      if (response.ok) {
+        const report = await response.json();
+        setSessionReport(report.report);
+        console.log("✅ Session Report:", report.report);
+      } else {
+        console.error("❌ Failed to generate session report");
+      }
+    } catch (error) {
+      console.error("❌ Error connecting to session report API:", error);
+    }
+  };
+
+  async function sendAudioToAPI(wavBlob, userId) {
+    try {
+      const formData = new FormData();
+      formData.append("file", wavBlob, `audio_${userId}.wav`);
+
+      console.log(`🚀 Sending WAV to FastAPI for Remote User ${userId}...`);
+
+      const response = await fetch("http://127.0.0.1:8001/predict/", {
+        method: "POST",
+        body: formData,
+      });
+      const result = await response.json();
+      updateChart(result);
+      console.log(`✅ Emotion Prediction for User ${userId}:`, result);
+    } catch (error) {
+      console.error(`❌ Error sending audio for User ${userId}:`, error);
+    }
+  }
+
+  async function convertWebMtoWAV(webmBlob) {
+    console.log("eeeeeeeeeeeeee");
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsArrayBuffer(webmBlob);
+
+      reader.onloadend = async () => {
+        try {
+          const audioContext = new (window.AudioContext ||
+            window.webkitAudioContext)();
+
+          const arrayBuffer = reader.result;
+
+          if (!arrayBuffer || arrayBuffer.byteLength < 1000) {
+            reject("⚠️ WebM file is empty or corrupt!");
+            return;
+          }
+
+          // ✅ Decode WebM to AudioBuffer
+          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+          console.log("✅ Successfully decoded WebM audio");
+
+          // ✅ Convert AudioBuffer to WAV
+          const wavBuffer = AudioBufferToWav(audioBuffer);
+          const wavBlob = new Blob([wavBuffer], { type: "audio/wav" });
+
+          console.log("🎤 Converted WAV File Size:", wavBlob.size);
+
+          if (wavBlob.size < 1000) {
+            reject("⚠️ Converted WAV file is empty!");
+            return;
+          }
+
+          resolve(wavBlob);
+        } catch (error) {
+          reject("❌ Error decoding WebM audio: " + error.message);
+        }
+      };
+
+      reader.onerror = reject;
+    });
+  }
+
+  const handleDownload = () => {
+    const blob = new Blob([JSON.stringify(sessionReport, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "session_report.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(JSON.stringify(sessionReport, null, 2));
+    alert("📋 Session report copied to clipboard!");
+  };
 
   return (
     <>
@@ -401,7 +813,10 @@ export const AgoraProvider = ({ session_id }) => {
           </div>
           <button
             className={`btn btn-phone ${calling ? "btn-phone-active" : ""}`}
-            onClick={() => setCalling((a) => !a)}
+            onClick={() => {
+              setCalling((a) => !a);
+              generateSessionReport();
+            }}
           >
             {calling ? (
               <i className="i-phone-hangup" />
@@ -411,8 +826,79 @@ export const AgoraProvider = ({ session_id }) => {
           </button>
         </div>
       )}
+      {isConnected && (
+        <div style={{ width: "100%", height: "400px", marginTop: "100px" }}>
+          <h2>📊Vocal Stress Level Graph</h2>
+          <Line data={chartData} options={chartOptions} />
+        </div>
+      )}
+
+      {!isConnected && sessionReport !== null && (
+        <div style={styles.container}>
+          <h2 style={styles.title}>📄 Session Report</h2>
+          <pre style={styles.report}>
+            {JSON.stringify(sessionReport, null, 2)}
+          </pre>
+
+          <div style={styles.buttonContainer}>
+            <button style={styles.button} onClick={handleCopy}>
+              📋 Copy
+            </button>
+            <button style={styles.button} onClick={handleDownload}>
+              ⬇️ Download
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
+};
+
+// Inline styles for the report UI
+const styles = {
+  container: {
+    backgroundColor: "#f9f9f9",
+    padding: "20px",
+    borderRadius: "10px",
+    boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+    maxWidth: "600px",
+    margin: "20px auto",
+    textAlign: "center",
+    fontFamily: "Arial, sans-serif",
+    height: "200px",
+    marginBottom: "200px",
+  },
+  title: {
+    fontSize: "20px",
+    marginBottom: "10px",
+    color: "#333",
+  },
+  report: {
+    backgroundColor: "#fff",
+    padding: "15px",
+    borderRadius: "5px",
+    boxShadow: "inset 0 0 5px rgba(0, 0, 0, 0.1)",
+    textAlign: "left",
+    fontFamily: "monospace",
+    whiteSpace: "pre-wrap",
+    maxHeight: "300px",
+    overflowY: "auto",
+  },
+  buttonContainer: {
+    marginTop: "10px",
+    display: "flex",
+    justifyContent: "center",
+    gap: "10px",
+  },
+  button: {
+    backgroundColor: "#007bff",
+    color: "white",
+    padding: "10px 15px",
+    border: "none",
+    borderRadius: "5px",
+    cursor: "pointer",
+    fontSize: "14px",
+  },
 };
 
 export default AgoraProvider;
