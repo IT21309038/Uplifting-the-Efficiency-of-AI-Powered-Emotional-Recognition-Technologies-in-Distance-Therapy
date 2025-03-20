@@ -63,12 +63,7 @@ body {
   background-color: #d9d9d9;
   box-shadow: none;
 }
-.room {
-  padding-top: 10px;
-}
 .user-list {
-  padding-top: 1rem;
-  padding: 2.5rem;
   grid-gap: 1.25rem;
   gap: 1.25rem;
   flex: 1 1 0%;
@@ -79,8 +74,7 @@ body {
   border-color: rgba(75, 85, 99, 1);
   border-width: 1px;
   box-sizing: border-box;
-  width: 200px !important; /* Increased width */
-  height: 300px !important; /* Increased height */
+  width: 500px !important; /* Increased width */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -89,19 +83,10 @@ body {
   border-radius: 8px;
 }
 
-.remort-user-video{
-  border-style: solid;
-  border-color: rgba(75, 85, 99, 1);
-  border-width: 1px;
-  box-sizing: border-box;
-  width: 200px !important; /* Increased width */
-  height: 300px !important; /* Increased height */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  background-color: rgba(0, 0, 0, 0.8);
-  border-radius: 8px;
+.processed-frame {
+  width: 640px;
+  height: 480px;
+  margin-top: 10px;
 }
 
 .user-name {
@@ -118,8 +103,6 @@ body {
   align-items: center;
   display: inline-flex;
   z-index: 2;
-  bottom: 0;
-  position: absolute;
   box-sizing: border-box;
 }
 .control {

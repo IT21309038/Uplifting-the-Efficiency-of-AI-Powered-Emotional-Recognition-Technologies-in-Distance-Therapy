@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @Data
 public class SucessLoginDoctorDTO {
 
+    private int id;
     private String first_name;
     private String last_name;
     private String full_name;

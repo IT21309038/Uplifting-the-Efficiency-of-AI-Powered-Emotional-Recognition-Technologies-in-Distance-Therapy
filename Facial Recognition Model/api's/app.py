@@ -1,4 +1,3 @@
-# app.py
 import cv2
 import dlib
 import numpy as np
@@ -9,10 +8,11 @@ from tensorflow.keras.preprocessing.image import img_to_array
 from collections import deque, Counter
 from io import BytesIO
 import base64
-import uuid
+import json
 from fastapi import FastAPI, WebSocket, Response
 import asyncio
 import logging
+from starlette.websockets import WebSocketDisconnect
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -28,7 +28,7 @@ emotion_labels = ["Anger", "Disgust", "Fear", "Happy", "Neutral", "Sad", "Surpri
 emotion_to_stress = {"Anger": 1.0, "Disgust": 0.7, "Fear": 0.9, "Happy": -0.5, "Neutral": 0.0, "Sad": 0.5,
                      "Surprise": -0.2}
 decay_factor = 0.2
-fps = 30
+fps = 10
 window_duration = 2
 frames_per_window = fps * window_duration
 
@@ -141,57 +141,112 @@ def generate_final_plots(stress_levels, window_emotions):
 app = FastAPI()
 
 
-# app.py (partial update, only showing the WebSocket endpoint)
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    connection_id = str(uuid.uuid4())
-    connection_states[connection_id] = ConnectionState()
-    await websocket.send_text(connection_id)
-    logger.info(f"WebSocket connection established: {connection_id}")
-
+    uid = None
     try:
         while True:
             try:
                 data = await websocket.receive_text()
-                logger.info(f"Received data for connection {connection_id}, length: {len(data)}")
-                if not data.startswith("data:image"):
-                    logger.info(f"Non-image data received: {data[:20]}... skipping")
+                frame_data = json.loads(data)
+                received_uid = frame_data.get("userId")
+                action = frame_data.get("action", "frame")  # Default to "frame" if not specified
+
+                if not received_uid:
+                    logger.error("No UID provided in message")
                     continue
-                frame = decode_base64_frame(data)
-                if frame is None:
-                    logger.warning(f"Failed to decode frame for {connection_id}, skipping")
+
+                # Set UID from the first message if not already set
+                if uid is None:
+                    uid = received_uid
+                    logger.info(f"WebSocket connection established for UID: {uid}")
+
+                if received_uid != uid:
+                    logger.warning(f"UID mismatch: expected {uid}, got {received_uid}")
                     continue
-                processed_frame, _ = process_frame(frame, connection_states[connection_id])
-                graph = generate_stress_graph(connection_states[connection_id].stress_levels)
-                combined_frame = cv2.hconcat([cv2.resize(processed_frame, (640, 480)), cv2.resize(graph, (640, 480))])
-                ret, jpeg = cv2.imencode('.jpg', combined_frame)
-                if ret:
-                    await websocket.send_bytes(jpeg.tobytes())
-                    logger.info(f"Sent processed frame for connection {connection_id}")
+
+                if action == "start":
+                    if uid not in connection_states:
+                        connection_states[uid] = ConnectionState()
+                        logger.info(f"Started processing for UID: {uid}")
+                    continue
+
+                elif action == "stop":
+                    if uid in connection_states:
+                        del connection_states[uid]
+                        logger.info(f"Stopped processing and cleaned up state for UID: {uid}")
+                    await websocket.send_text(json.dumps({"status": "stopped", "userId": uid}))
+                    await websocket.close()
+                    return
+
+                elif action == "frame":
+                    base64_frame = frame_data.get("frameData")
+                    if not base64_frame or not base64_frame.startswith("data:image"):
+                        logger.info(f"Invalid frame data received for UID {uid}: {base64_frame[:20]}...")
+                        continue
+
+                    if uid not in connection_states:
+                        connection_states[uid] = ConnectionState()
+                        logger.info(f"Initialized state for UID: {uid} on first frame")
+
+                    frame = decode_base64_frame(base64_frame)
+                    if frame is None:
+                        logger.warning(f"Failed to decode frame for UID {uid}, skipping")
+                        continue
+
+                    processed_frame, _ = process_frame(frame, connection_states[uid])
+                    graph = generate_stress_graph(connection_states[uid].stress_levels)
+                    combined_frame = cv2.hconcat([cv2.resize(processed_frame, (640, 480)), cv2.resize(graph, (640, 480))])
+                    ret, jpeg = cv2.imencode('.jpg', combined_frame)
+                    if ret:
+                        await websocket.send_bytes(jpeg.tobytes())
+                        logger.info(f"Sent processed frame for UID {uid}")
+                    else:
+                        logger.error(f"Failed to encode processed frame for UID {uid}")
+
+                else:
+                    logger.warning(f"Unknown action received for UID {uid}: {action}")
+
+            except json.JSONDecodeError as e:
+                logger.error(f"Invalid JSON received for UID {uid}: {e}")
+            except WebSocketDisconnect as e:
+                logger.info(f"WebSocket disconnected for UID {uid}: {e}")
+                break
             except Exception as e:
-                logger.error(f"Error processing frame for {connection_id}: {e}")
+                logger.error(f"Error processing message for UID {uid}: {e}")
+
+    except WebSocketDisconnect as e:
+        logger.info(f"Initial WebSocket disconnected for UID {uid if uid else 'unknown'}: {e}")
     except Exception as e:
-        logger.error(f"WebSocket error for {connection_id}: {e}")
+        logger.error(f"WebSocket error for UID {uid if uid else 'unknown'}: {e}")
     finally:
-        if connection_id in connection_states:
-            del connection_states[connection_id]
-            logger.info(f"Cleaned up state for connection {connection_id}")
+        if uid and uid in connection_states:
+            del connection_states[uid]
+            logger.info(f"Cleaned up state for UID {uid} in finally block")
+        try:
+            await websocket.close()
+        except RuntimeError:
+            # Ignore if already closed
+            pass
 
 
-@app.get("/final_stress_plot/{connection_id}")
-async def get_final_stress_plot(connection_id: str):
-    if connection_id not in connection_states:
+@app.get("/final_stress_plot/{uid}")
+async def get_final_stress_plot(uid: str):
+    if uid not in connection_states:
         return {"error": "No data available for this session"}
-    stress_plot, _ = generate_final_plots(connection_states[connection_id].stress_levels,
-                                          connection_states[connection_id].window_emotions)
+    stress_plot, _ = generate_final_plots(connection_states[uid].stress_levels, connection_states[uid].window_emotions)
     return Response(content=stress_plot, media_type="image/png")
 
 
-@app.get("/final_emotion_plot/{connection_id}")
-async def get_final_emotion_plot(connection_id: str):
-    if connection_id not in connection_states:
+@app.get("/final_emotion_plot/{uid}")
+async def get_final_emotion_plot(uid: str):
+    if uid not in connection_states:
         return {"error": "No data available for this session"}
-    _, emotion_plot = generate_final_plots(connection_states[connection_id].stress_levels,
-                                           connection_states[connection_id].window_emotions)
+    _, emotion_plot = generate_final_plots(connection_states[uid].stress_levels, connection_states[uid].window_emotions)
     return Response(content=emotion_plot, media_type="image/png")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
