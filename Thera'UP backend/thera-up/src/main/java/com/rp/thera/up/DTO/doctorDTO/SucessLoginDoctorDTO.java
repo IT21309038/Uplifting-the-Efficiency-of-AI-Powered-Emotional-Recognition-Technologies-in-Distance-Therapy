@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @Data
 public class SucessLoginDoctorDTO {
 
+    //add id to the doctor entity
     private int id;
     private String first_name;
     private String last_name;

@@ -131,6 +131,8 @@ public class DoctorServiceImpl implements DoctorService {
         successLoginDoctorDTO.setRole(doctor.getRole());
         successLoginDoctorDTO.setCareer_roles(doctor.getCareerRoles());
 
+        //return success login doctor dto
+
         return successLoginDoctorDTO;
     }
 
