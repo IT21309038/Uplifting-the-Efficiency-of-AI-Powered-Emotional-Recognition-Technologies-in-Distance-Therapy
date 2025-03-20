@@ -38,7 +38,7 @@ export const navigation = [
       {
         key: "3.1",
         label: "Diagnostic Report",
-        path: "/Reports/Diagnostic",
+        path: "/Reports/Diagnostic/viewAll",
         breadcrumb: [
           {
             title: "Reports",

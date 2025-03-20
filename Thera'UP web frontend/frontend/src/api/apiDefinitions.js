@@ -17,6 +17,12 @@ const apiDefinitions = {
       `schedule/get-schedule-by-doctor/${doctorId}?sortBy=${currentMonth}`
     );
   },
+  getPatientListPending: async function () {
+    return await api.get("doctors/get-patient-list/2?status=pending");
+  },
+  getPatientListCompleted: async function () {
+    return await api.get("doctors/get-patient-list/1?status=completed");
+  },
 
   /****************Patient API Start */
   activitySuggestion: async function (payload) {
@@ -35,6 +41,9 @@ const apiDefinitions = {
     return await api.delete(
       `postTherapy/deleteActivity/${patientId}/${activityId}`
     );
+  },
+  getAllPatientDetails: async function (patientId) {
+    return await api.get(`patients/get-report/${patientId}`);
   },
 };
 

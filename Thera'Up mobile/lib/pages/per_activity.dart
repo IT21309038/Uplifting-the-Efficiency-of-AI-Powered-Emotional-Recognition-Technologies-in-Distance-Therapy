@@ -75,9 +75,9 @@ class _PerActivityState extends State<PerActivity> {
 
   @override
   Widget build(BuildContext context) {
-    final Color primaryColor = Color(0xFFe1f0ff);
-    final Color accentColor = Colors.blueAccent;
-    final TextStyle labelStyle = TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: accentColor);
+    final Color primaryColor = Color(0xFF448aff);
+    final Color accentColor = primaryColor.withOpacity(0.8);
+    final Color lightColor = primaryColor.withOpacity(0.2);
 
     return Scaffold(
       appBar: AppBar(
@@ -85,133 +85,83 @@ class _PerActivityState extends State<PerActivity> {
           widget.activityName,
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: accentColor,
+        backgroundColor: primaryColor,
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            AnimatedOpacity(
-              opacity: 1.0,
-              duration: Duration(milliseconds: 300),
-              child: Card(
-                color: primaryColor,
-                elevation: 10,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Location:", style: labelStyle),
-                      Text(widget.location, style: TextStyle(fontSize: 18)),
-                      const SizedBox(height: 20),
-                      Text("Allocated Time:", style: labelStyle),
-                      Text("${widget.allocatedTime.toStringAsFixed(1)} hours", style: TextStyle(fontSize: 18)),
-                      const SizedBox(height: 20),
-                      Text("Elapsed Time:", style: labelStyle),
-                      Text("${_formatTime(_totalSeconds - _remainingSeconds)} elapsed", style: TextStyle(fontSize: 18)),
-                      const SizedBox(height: 20),
-                      Text("Remaining Time:", style: labelStyle),
-                      Center(
-                        child: Text(
-                          _formatTime(_remainingSeconds),
-                          style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Colors.redAccent),
-                        ),
-                      ),
-                    ],
+            // Circular Timer
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  height: 200,
+                  width: 200,
+                  child: CircularProgressIndicator(
+                    value: 1 - _progressPercentage(),
+                    strokeWidth: 12,
+                    backgroundColor: lightColor,
+                    valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
                   ),
                 ),
-              ),
+                Text(
+                  _formatTime(_remainingSeconds),
+                  style: const TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 30),
-            AnimatedOpacity(
-              opacity: 1.0,
-              duration: Duration(milliseconds: 300),
-              child: Card(
-                elevation: 5,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        "Progress: ${(100 * (1 - _progressPercentage())).toStringAsFixed(1)}% completed",
-                        style: TextStyle(fontSize: 16, color: accentColor),
-                      ),
-                      const SizedBox(height: 10),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: LinearProgressIndicator(
-                          value: _progressPercentage(),
-                          backgroundColor: Colors.grey[300],
-                          color: accentColor,
-                          minHeight: 10,
-                        ),
-                      ),
-                    ],
+            const SizedBox(height: 40),
+            Text(
+              "Location: ${widget.location}",
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              "Allocated Time: ${widget.allocatedTime.toStringAsFixed(1)} hours",
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 40),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton(
+                  onPressed: _startTimer,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                  child: const Text(
+                    "Start",
+                    style: TextStyle(fontSize: 16, color: Colors.white),
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 30),
-            Center(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton(
-                    onPressed: _startTimer,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                    ),
-                    child: const Text(
-                      "Start",
-                      style: TextStyle(fontSize: 16),
+                const SizedBox(width: 20),
+                ElevatedButton(
+                  onPressed: _stopTimer,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
                     ),
                   ),
-                  const SizedBox(width: 20),
-                  ElevatedButton(
-                    onPressed: _stopTimer,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                    ),
-                    child: const Text(
-                      "Stop",
-                      style: TextStyle(fontSize: 16),
-                    ),
+                  child: const Text(
+                    "Stop",
+                    style: TextStyle(fontSize: 16, color: Colors.white),
                   ),
-                  const SizedBox(width: 20),
-                  ElevatedButton(
-                    onPressed: _resetTimer,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: accentColor,
-                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                    ),
-                    child: const Text(
-                      "Reset",
-                      style: TextStyle(fontSize: 16),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                ),
+              ],
+            )
           ],
         ),
       ),
