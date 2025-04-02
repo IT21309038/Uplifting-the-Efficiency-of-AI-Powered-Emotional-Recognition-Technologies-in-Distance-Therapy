@@ -22,6 +22,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import * as faceapi from "face-api.js";
 
 import { Line } from "react-chartjs-2";
 
@@ -36,6 +37,11 @@ ChartJS.register(
 );
 
 const audioBuffers = {}; // Store recorded chunks for each remote user
+
+const loadModels = async () => {
+  await faceapi.nets.tinyFaceDetector.loadFromUri("/models");
+  console.log("✅ FaceAPI models loaded");
+};
 
 export const AgoraProvider = ({ session_id }) => {
   const router = useRouter();
@@ -172,6 +178,7 @@ export const AgoraProvider = ({ session_id }) => {
 
               const startCapture = () => {
                 const ws = wsRef.current;
+              
                 if (
                   !ws ||
                   ws.readyState !== WebSocket.OPEN ||
@@ -182,73 +189,84 @@ export const AgoraProvider = ({ session_id }) => {
                   console.log(
                     `User ${user.uid} not valid for capture: WS=${!!ws}, Open=${
                       ws?.readyState === WebSocket.OPEN
-                    }, UserExists=${remoteUsers.some(
-                      (u) => u.uid === user.uid
-                    )}, Video=${!!videoElement}, Playing=${
-                      videoTrack.isPlaying
-                    }`
+                    }, UserExists=${remoteUsers.some((u) => u.uid === user.uid)}, Video=${
+                      !!videoElement
+                    }, Playing=${videoTrack.isPlaying}`
                   );
                   return;
                 }
-
+              
                 canvas.width = videoElement.videoWidth || 640;
                 canvas.height = videoElement.videoHeight || 480;
-
+              
                 if (frameIntervals.current[user.uid]) {
                   clearInterval(frameIntervals.current[user.uid]);
                 }
-
-                const intervalId = setInterval(() => {
+              
+                const intervalId = setInterval(async () => {
                   try {
-                    if (
-                      !wsRef.current ||
-                      wsRef.current.readyState !== WebSocket.OPEN
-                    ) {
-                      console.log(
-                        `WebSocket not available for User ${user.uid}`
-                      );
+                    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+                      console.log(`WebSocket not available for User ${user.uid}`);
                       clearInterval(frameIntervals.current[user.uid]);
                       delete frameIntervals.current[user.uid];
                       return;
                     }
-
-                    if (
-                      videoElement.videoWidth === 0 ||
-                      videoElement.videoHeight === 0
-                    ) {
-                      console.log(
-                        `User ${user.uid} video dimensions not ready`
-                      );
+              
+                    if (videoElement.videoWidth === 0 || videoElement.videoHeight === 0) {
+                      console.log(`User ${user.uid} video dimensions not ready`);
                       return;
                     }
-
-                    context.drawImage(
+              
+                    context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+              
+                    const detection = await faceapi.detectSingleFace(
                       videoElement,
-                      0,
-                      0,
-                      canvas.width,
-                      canvas.height
+                      new faceapi.TinyFaceDetectorOptions()
                     );
-                    const imageData = canvas.toDataURL("image/jpeg", 0.5);
-
+              
+                    if (!detection) {
+                      console.log(`😢 No face detected for user ${user.uid}`);
+                      return;
+                    }
+              
+                    const { x, y, width, height } = detection.box;
+              
+                    const faceCanvas = document.createElement("canvas");
+                    faceCanvas.width = width;
+                    faceCanvas.height = height;
+              
+                    const faceCtx = faceCanvas.getContext("2d");
+                    faceCtx.drawImage(
+                      canvas,
+                      x,
+                      y,
+                      width,
+                      height,
+                      0,
+                      0,
+                      width,
+                      height
+                    );
+              
+                    const croppedDataUrl = faceCanvas.toDataURL("image/jpeg", 0.7); // Compressed
+              
                     wsRef.current.send(
                       JSON.stringify({
                         userId: user.uid,
-                        frameData: imageData,
+                        frameData: croppedDataUrl,
                         action: "frame",
                       })
                     );
-                    console.log(`Sent frame data for User ${user.uid}`);
+              
+                    console.log(`🎯 Sent cropped face frame for User ${user.uid}`);
                   } catch (error) {
-                    console.error(
-                      `Frame capture error for User ${user.uid}:`,
-                      error
-                    );
+                    console.error(`Frame capture error for User ${user.uid}:`, error);
                   }
-                }, 33);
-
+                }, 300); // Roughly 3 frames per second for face detection
+              
                 frameIntervals.current[user.uid] = intervalId;
               };
+              
 
               const checkVideoReady = (retries = 10) => {
                 if (retries <= 0) {
@@ -783,6 +801,10 @@ export const AgoraProvider = ({ session_id }) => {
     navigator.clipboard.writeText(JSON.stringify(sessionReport, null, 2));
     alert("📋 Session report copied to clipboard!");
   };
+
+  useEffect(() => {
+    loadModels();
+  }, []);
 
   return (
     <>
