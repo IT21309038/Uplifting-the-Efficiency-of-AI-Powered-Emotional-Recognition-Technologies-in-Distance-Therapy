@@ -290,6 +290,11 @@ export const AgoraProvider = ({ session_id }) => {
                 checkVideoReady();
               };
 
+              videoElement.onplaying = () => { // 👈 ADD THIS NEW LISTENER
+                console.log(`User ${user.uid} started playing`);
+                checkVideoReady();
+              };
+
               if (videoElement.readyState >= 2) {
                 checkVideoReady();
               }
@@ -839,59 +844,62 @@ export const AgoraProvider = ({ session_id }) => {
                 <div className="user" key={user.uid}>
                   <Image
                     ref={(ref) => {
-                      if (ref) processedRefs.current[user.uid] = ref; // This is already correct
-                    }}
-                    alt={`Processed frame for ${user.uid}`}
-                    style={{
-                      width: "240%",
-                      height: "130%",
-                      objectFit: "cover",
-                    }}
-                  />
-                </div>
-              </>
-            ))}
-          </div>
-        ) : (
-          <div className="join-room">
-            <input
-              onChange={(e) => setAppId(e.target.value)}
-              placeholder="<Your app ID>"
-              value={appId}
-            />
-            <input
-              onChange={(e) => setChannel(e.target.value)}
-              placeholder="<Your channel Name>"
-              value={channel}
-            />
-            <input
-              onChange={(e) => setToken(e.target.value)}
-              placeholder="<Your token>"
-              value={token}
-            />
-            <button
-              className={`join-channel ${!appId || !channel ? "disabled" : ""}`}
-              disabled={!appId || !channel}
-              onClick={() => setCalling(true)}
-            >
-              <span>Join Channel</span>
-            </button>
-          </div>
-        )}
-      </div>
-      {isConnected && (
-        <div className="control">
-          <div className="left-control">
-            <button className="btn" onClick={() => setMic((a) => !a)}>
-              <i className={`i-microphone ${!micOn ? "off" : ""}`} />
-            </button>
-            <button className="btn" onClick={() => setCamera((a) => !a)}>
-              <i className={`i-camera ${!cameraOn ? "off" : ""}`} />
-            </button>
-          </div>
-          <button
-            className={`btn btn-phone ${calling ? "btn-phone-active" : ""}`}
-            onClick={() => {
+                       processedRefs.current[user.uid] = ref; // This is already correct
+                                }}
+                                alt={`Processed frame for ${user.uid}`}
+                                style={{
+                                  width: "240%",
+                                  height: "130%",
+                                  objectFit: "cover",
+                                }}
+                                />
+                              </div>
+                              </>
+                            ))}
+                            </div>
+                          ) : (
+                            <div className="join-room">
+                            <input
+                              onChange={(e) => setAppId(e.target.value)}
+                              placeholder="<Your app ID>"
+                              value={appId}
+                              disabled
+                            />
+                            <input
+                              onChange={(e) => setChannel(e.target.value)}
+                              placeholder="<Your channel Name>"
+                              value={channel}
+                              disabled
+                            />
+                            {/* <input
+                              onChange={(e) => setToken(e.target.value)}
+                              placeholder="<Your token>"
+                              value={token}
+                              disabled
+                            /> */}
+                            <button
+                              className={`join-channel ${!appId || !channel ? "disabled" : ""}`}
+                              disabled={!appId || !channel}
+                              onClick={() => setCalling(true)}
+                            >
+                              <span>Join Channel</span>
+                            </button>
+                            </div>
+                          )}
+                          </div>
+                          {isConnected && (
+                          <div className="control">
+                            <div className="left-control">
+                            <button className="btn" onClick={() => setMic((a) => !a)}>
+                              <i className={`i-microphone ${!micOn ? "off" : ""}`} />
+                            </button>
+                            <button className="btn" onClick={() => setCamera((a) => !a)}>
+                              <i className={`i-camera ${!cameraOn ? "off" : ""}`} />
+                            </button>
+                            </div>
+                            <button
+                            className={`btn btn-phone ${calling ? "btn-phone-active" : ""}`}
+                            onClick={() => {
               if (calling) {
                 handleHangup(); // Call hangup function
                 generateSessionReport();

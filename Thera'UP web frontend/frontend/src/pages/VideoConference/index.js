@@ -34,29 +34,6 @@ const Sessions = () => {
   //get current month as 2025-03 format
   const currentMonthDate = new Date().toISOString().slice(0, 7);
 
-  //set rows to mock data using useEffect
-  // useEffect(() => {
-  //   const fetchData = async () => {
-  //     try {
-  //       const response = await fetch(
-  //         `${process.env.NEXT_PUBLIC_API_URL}/schedule/get-schedule-by-doctor/${doctorId}?sortBy=${currentMonth}`
-  //       );
-  //       if (!response.ok) {
-  //         throw new Error("Failed to fetch data");
-  //       }
-  //       const data = await response.json();
-
-  //       setRows(data.data || []);
-  //       setRecordCount(data.data.length);
-  //     } catch (error) {
-  //       console.error("Error fetching data:", error);
-  //     } finally {
-  //     }
-  //   };
-
-  //   fetchData();
-  // }, [doctorId, currentMonth, tableRefresh]);
-
   useEffect(() => {
     apiDefinitions
       .getSessionByDoctor(doctorId, currentMonthDate)
@@ -186,7 +163,7 @@ const Sessions = () => {
         const currentDateTime = new Date(); // Currently 2025-03-15 11:15 AM
 
         // Combine session date and time
-        const sessionDateTimeStr = `${params?.row?.date} ${params?.row?.time}`;
+        const sessionDateTimeStr = `${params?.row?.date}T${params?.row?.time}`;
         const sessionDateTime = new Date(sessionDateTimeStr);
 
         // Check if date parsing worked
@@ -199,7 +176,7 @@ const Sessions = () => {
         const enableTime = new Date(sessionDateTime.getTime() - 10 * 60000); // 10 minutes before
 
         // Parse duration (remove "mins" and convert to number)
-        const durationMinutes = parseInt(params?.row?.duration) || 30; // Default to 30 if invalid
+        const durationMinutes = parseInt(params?.row?.sessionDuration) || 30; // Default to 30 if invalid
 
         // Calculate session end time
         const sessionEndTime = new Date(
