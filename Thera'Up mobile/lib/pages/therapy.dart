@@ -9,6 +9,7 @@ import 'package:thera_up/pages/NewPage.dart';
 import 'package:thera_up/services/SessionService.dart';
 import 'package:thera_up/services/TherapyApiService.dart';
 import 'package:http/http.dart' as http;
+import 'dart:async';
 
 class Therapy extends StatefulWidget {
   Therapy({Key? key}) : super(key: key);
@@ -24,22 +25,30 @@ class _TherapyState extends State<Therapy> {
 
   final TherapyApiService _therapyApiService = TherapyApiService();
 
+  Timer? _timer;
+
   @override
   void initState() {
     super.initState();
     _fetchTherapies();
+    // Start a timer to refresh UI every minute
+    _timer = Timer.periodic(Duration(seconds: 30), (timer) {
+      setState(() {
+        // This will rebuild the widget and recheck _isSessionStartingSoon()
+      });
+    });
   }
-
 
   Future<void> _fetchTherapies() async {
     setState(() => _isLoading = true);
 
     try {
-
       final userId = await SessionService.getUserId();
 
-      upComingTherapies = await _therapyApiService.getUpcomingTherapies(userId!); // Replace 1 with the actual patient ID
-      pastTherapies = await _therapyApiService.getPastTherapies(userId); // Replace 1 with the actual patient ID
+      upComingTherapies = await _therapyApiService.getUpcomingTherapies(
+          userId!); // Replace 1 with the actual patient ID
+      pastTherapies = await _therapyApiService
+          .getPastTherapies(userId); // Replace 1 with the actual patient ID
     } catch (e) {
       _showError(e.toString());
     }
@@ -65,18 +74,18 @@ class _TherapyState extends State<Therapy> {
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            _scheduleNow(),
-            const SizedBox(height: 30),
-            _upComing(),
-            const SizedBox(height: 30),
-            _pastTherapies(),
-            const SizedBox(height: 30),
-          ],
-        ),
-      ),
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+                  _scheduleNow(),
+                  const SizedBox(height: 30),
+                  _upComing(),
+                  const SizedBox(height: 30),
+                  _pastTherapies(),
+                  const SizedBox(height: 30),
+                ],
+              ),
+            ),
     );
   }
 
@@ -170,11 +179,12 @@ class _TherapyState extends State<Therapy> {
 
   Future<bool?> _checkUpcomingTherapies() async {
     try {
-
       final userId = await SessionService.getUserId();
 
       final response = await http.get(
-        Uri.parse('https://theraupbackend.pixelcore.lk/api/v1/theraup/schedule/check-schedules/$userId'), // Replace 1 with the actual user ID
+        Uri.parse(
+            'https://theraupbackend.pixelcore.lk/api/v1/theraup/schedule/check-schedules/$userId'),
+        // Replace 1 with the actual user ID
         headers: {"Content-Type": "application/json"},
       );
 
@@ -225,11 +235,12 @@ class _TherapyState extends State<Therapy> {
 
   Future<bool> _deletePendingSessions() async {
     try {
-
       final userId = await SessionService.getUserId();
 
       final response = await http.delete(
-        Uri.parse('https://theraupbackend.pixelcore.lk/api/v1/theraup/schedule/delete-pending-sessions/$userId'), // Replace 1 with the actual user ID
+        Uri.parse(
+            'https://theraupbackend.pixelcore.lk/api/v1/theraup/schedule/delete-pending-sessions/$userId'),
+        // Replace 1 with the actual user ID
         headers: {"Content-Type": "application/json"},
       );
 
@@ -246,7 +257,6 @@ class _TherapyState extends State<Therapy> {
       return false;
     }
   }
-
 
   Column _upComing() {
     return Column(
@@ -265,7 +275,7 @@ class _TherapyState extends State<Therapy> {
         ),
         SizedBox(height: 20),
         Container(
-          height: 280, // Set a fixed height
+          height: 320, // Set a fixed height
           child: ListView.separated(
             separatorBuilder: (context, index) {
               return SizedBox(width: 20);
@@ -273,7 +283,7 @@ class _TherapyState extends State<Therapy> {
             itemCount: upComingTherapies.length,
             itemBuilder: (context, index) {
               return Container(
-                width: 210,
+                width: 250,
                 decoration: BoxDecoration(
                   color: (index % 2 == 0)
                       ? Color(0xff9DCEFF).withOpacity(0.5)
@@ -285,6 +295,15 @@ class _TherapyState extends State<Therapy> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      SizedBox(height: 10),
+                      Text(
+                        "Session ID: ${upComingTherapies[index].sessionId}",
+                        style: TextStyle(
+                          color: Colors.black87,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
                       SizedBox(height: 10),
                       Text(
                         upComingTherapies[index].date,
@@ -325,7 +344,9 @@ class _TherapyState extends State<Therapy> {
                             ),
                           ),
                           Text(
-                            upComingTherapies[index].paid ? '  Paid' : '  Pending',
+                            upComingTherapies[index].paid
+                                ? '  Paid'
+                                : '  Pending',
                             style: TextStyle(
                               color: Colors.grey,
                               fontSize: 16,
@@ -337,13 +358,18 @@ class _TherapyState extends State<Therapy> {
                       SizedBox(height: 10),
                       Center(
                         child: ElevatedButton(
-                          onPressed: _isSessionStartingSoon(upComingTherapies[index].date, upComingTherapies[index].time)
+                          onPressed: _isSessionStartingSoon(
+                            upComingTherapies[index].date,
+                            upComingTherapies[index].time,
+                            upComingTherapies[index].sessionDuration,
+                          )
                               ? () {
-                            _joinTherapySession(context, upComingTherapies[index].time);
-                          }
-                              : null, // Disable button if session is not within 5 minutes,
+                                  _joinTherapySession(
+                                      context, upComingTherapies[index].sessionId);
+                                }
+                              : null,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blueAccent, // Button color
+                            backgroundColor: Colors.blueAccent,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -434,17 +460,20 @@ class _TherapyState extends State<Therapy> {
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                            backgroundColor: pastTherapies[index].status == 'completed'
+                            backgroundColor: pastTherapies[index].status ==
+                                    'completed'
                                 ? Colors.green
                                 : pastTherapies[index].status == 'Not completed'
-                                ? Colors.red
-                                : pastTherapies[index].status == 'N/A'
-                                ? Colors.grey
-                                : pastTherapies[index].status == 'Ongoing'
-                                ? Colors.amber
-                                : Colors.blue,
+                                    ? Colors.red
+                                    : pastTherapies[index].status == 'N/A'
+                                        ? Colors.grey
+                                        : pastTherapies[index].status ==
+                                                'Ongoing'
+                                            ? Colors.amber
+                                            : Colors.blue,
                             shape: StadiumBorder(
-                              side: BorderSide.none, // Ensures no visible border
+                              side:
+                                  BorderSide.none, // Ensures no visible border
                             ),
                           ),
                         ],
@@ -472,7 +501,8 @@ class _TherapyState extends State<Therapy> {
                           const Spacer(),
                           Row(
                             children: [
-                              const Icon(Icons.star, color: Colors.amber, size: 18),
+                              const Icon(Icons.star,
+                                  color: Colors.amber, size: 18),
                               const SizedBox(width: 4),
                               Text(
                                 pastTherapies[index].rating.isEmpty
@@ -560,7 +590,8 @@ class _TherapyState extends State<Therapy> {
               actions: [
                 TextButton(
                   onPressed: () {
-                    Navigator.of(context).pop(); // Close the dialog without saving
+                    Navigator.of(context)
+                        .pop(); // Close the dialog without saving
                   },
                   child: const Text('Cancel'),
                 ),
@@ -582,36 +613,40 @@ class _TherapyState extends State<Therapy> {
   }
 }
 
-bool _isSessionStartingSoon(String sessionDate, String sessionTime) {
+bool _isSessionStartingSoon(
+    String sessionDate, String sessionTime, int sessionDuration) {
   try {
-    // Define the target date (12th July 2021)
-    DateTime targetDate = DateTime(2021, 7, 12);
+    // Parse session date (example "2025-04-14")
+    DateTime parsedDate = DateFormat("yyyy-MM-dd").parse(sessionDate);
 
-    // Parse the session date (format: "Monday, 12 July 2021")
-    DateTime parsedDate = DateFormat("EEEE, d MMMM yyyy").parse(sessionDate);
+    // Parse session time (example "10:35:00")
+    DateTime parsedTime = DateFormat("HH:mm:ss").parse(sessionTime);
 
-    // Parse the session time (format: "10:00 AM")
-    DateTime parsedTime = DateFormat("hh:mm a").parse(sessionTime);
-
-    // Convert session time to full DateTime
-    DateTime sessionDateTime = DateTime(
-        parsedDate.year, parsedDate.month, parsedDate.day,
-        parsedTime.hour, parsedTime.minute
+    // Combine date and time into one DateTime object
+    DateTime sessionStart = DateTime(
+      parsedDate.year,
+      parsedDate.month,
+      parsedDate.day,
+      parsedTime.hour,
+      parsedTime.minute,
+      parsedTime.second,
     );
 
-    DateTime now = DateTime.now(); // Get current time
+    // Calculate session end time
+    DateTime sessionEnd = sessionStart.add(Duration(minutes: sessionDuration));
 
-    // Check if the session is on 12th July 2021 AND the time has not passed
-    return parsedDate.year == targetDate.year &&
-        parsedDate.month == targetDate.month &&
-        parsedDate.day == targetDate.day;
+    DateTime now = DateTime.now();
+
+    // Allow joining 10 minutes before sessionStart and while session ongoing
+    return now.isAfter(sessionStart.subtract(Duration(minutes: 10))) &&
+        now.isBefore(sessionEnd);
   } catch (e) {
-    print("Error parsing date/time: $e");
+    print("Error parsing date/time/duration: $e");
     return false;
   }
 }
 
-void _joinTherapySession(BuildContext context, String meetingUrl) {
+void _joinTherapySession(BuildContext context, String sessionId) {
   showDialog(
     context: context,
     builder: (BuildContext context) {
@@ -640,7 +675,8 @@ void _joinTherapySession(BuildContext context, String meetingUrl) {
             child: Text("Join Now"),
             onPressed: () {
               Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => MainScreen()));
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => MainScreen(sessionId: sessionId)));
             },
           ),
         ],
