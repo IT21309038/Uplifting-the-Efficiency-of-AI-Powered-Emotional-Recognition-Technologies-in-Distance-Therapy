@@ -134,7 +134,7 @@ export const AgoraProvider = ({ session_id }) => {
     const response = await fetch("http://localhost:8000/webrtc-offer", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(offer),
+      body: JSON.stringify({ offer: offer }),
     });
 
     const answer = await response.json();
@@ -145,6 +145,81 @@ export const AgoraProvider = ({ session_id }) => {
     );
   };
 
+  // WebSocket connection management
+  // useEffect(() => {
+  //   let reconnectTimeout;
+
+  //   const connectWebSocket = () => {
+  //     if (wsRef.current?.readyState === WebSocket.OPEN) return;
+
+  //     wsRef.current = new WebSocket("ws://localhost:8000/ws");
+
+  //     wsRef.current.onopen = () => {
+  //       console.log("WebSocket connection established");
+  //       if (remoteUsers.length > 0) {
+  //         const initialUserId = remoteUsers[0].uid;
+  //         wsRef.current.send(
+  //           JSON.stringify({ userId: initialUserId, action: "start" })
+  //         );
+  //         console.log(`Sent initial userId: ${initialUserId}`);
+  //       }
+  //     };
+
+  //     wsRef.current.onmessage = (event) => {
+  //       if (typeof event.data === "string") {
+  //         console.log("Received string message:", event.data);
+  //       } else {
+  //         const blob = new Blob([event.data], { type: "image/jpeg" });
+  //         const url = URL.createObjectURL(blob);
+  //         window.open(url, "_blank");
+  //         remoteUsers.forEach((user) => {
+  //           const img = processedRefs.current[user.uid];
+  //           if (img) {
+  //             img.onload = () => {
+  //               URL.revokeObjectURL(url);
+  //               console.log(`Image loaded for user ${user.uid} at ${url}`);
+  //             };
+  //             img.onerror = () => {
+  //               console.error(
+  //                 `Image failed to load for user ${user.uid} at ${url}`
+  //               );
+  //             };
+  //             img.src = url;
+  //             console.log(`Assigned URL to img: ${url}`);
+  //           } else {
+  //             console.warn(`No img element found for user ${user.uid}`);
+  //             URL.revokeObjectURL(url); // Clean up if no img is available
+  //           }
+  //         });
+  //       }
+  //     };
+
+  //     wsRef.current.onclose = () => {
+  //       console.log("WebSocket connection closed");
+  //       if (remoteUsers.length > 0) {
+  //         reconnectTimeout = setTimeout(connectWebSocket, 1000);
+  //       }
+  //     };
+
+  //     wsRef.current.onerror = (error) => {
+  //       console.error("WebSocket error:", error);
+  //     };
+  //   };
+
+  //   if (remoteUsers.length > 0) {
+  //     connectWebSocket();
+  //   }
+
+  //   return () => {
+  //     clearTimeout(reconnectTimeout);
+  //     if (wsRef.current) {
+  //       wsRef.current.close();
+  //       wsRef.current = null;
+  //     }
+  //   };
+  // }, [remoteUsers]);
+
+  // Frame capture and media handling
   useEffect(() => {
     const handleUserPublished = async (user, mediaType) => {
       if (mediaType === "video") {
@@ -359,6 +434,36 @@ export const AgoraProvider = ({ session_id }) => {
               }
             };
             console.log("aaaaa");
+            // ✅ Send audio to API every 10 seconds
+            // audioIntervals[user.uid] = setInterval(async () => {
+            //   console.log(
+            //     `🛑 Stopping MediaRecorder for User ${user.uid} to finalize WebM file.`
+            //   );
+
+            //   mediaRecorder.stop();
+            //   setTimeout(async () => {
+            //     console.log(
+            //       `🔄 Restarting MediaRecorder for User ${user.uid}...`
+            //     );
+            //     mediaRecorder.start();
+            //   }, 500);
+            //   console.log("hhhhhhhh");
+            //   if (audioBuffers[user.uid].length > 0) {
+            //     const webmBlob = new Blob(audioBuffers[user.uid], {
+            //       type: "audio/webm",
+            //     });
+
+            //     // ✅ Convert WebM to WAV
+            //     const wavBlob = await convertWebMtoWAV(webmBlob);
+
+            //     // ✅ Send to API
+            //     await sendAudioToAPI(wavBlob, user.uid);
+
+            //     // ✅ Clear buffer after sending
+            //     audioBuffers[user.uid] = [];
+            //   }
+            // }, 10000);
+
             audioIntervals[user.uid] = setInterval(async () => {
               if (mediaRecorder.state === "recording") {
                 console.log(
@@ -444,6 +549,17 @@ export const AgoraProvider = ({ session_id }) => {
           clearInterval(frameIntervals.current[user.uid]);
           delete frameIntervals.current[user.uid];
           console.log(`Stopped capturing frames for User ${user.uid}`);
+
+          // // Notify backend that this user's stream has stopped
+          // if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          //   wsRef.current.send(
+          //     JSON.stringify({
+          //       userId: user.uid,
+          //       action: "stop",
+          //     })
+          //   );
+          //   console.log(`Sent stop signal for User ${user.uid} to backend`);
+          // }
         }
       }
       if (mediaType === "audio") {
@@ -465,9 +581,16 @@ export const AgoraProvider = ({ session_id }) => {
       Object.keys(frameIntervals.current).forEach((userId) => {
         clearInterval(frameIntervals.current[userId]);
         delete frameIntervals.current[userId];
+        // if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        //   wsRef.current.send(
+        //     JSON.stringify({
+        //       userId: userId,
+        //       action: "stop",
+        //     })
+        //   );
+        // }
       });
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agoraClient, remoteUsers]);
 
   // Hangup function
@@ -495,6 +618,18 @@ export const AgoraProvider = ({ session_id }) => {
         clearInterval(frameIntervals.current[userId]);
         delete frameIntervals.current[userId];
       });
+
+      // Close WebSocket and send stop signal
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(
+          JSON.stringify({
+            userId: remoteUsers[0]?.uid || "unknown",
+            action: "stop",
+          })
+        );
+        wsRef.current.close();
+        wsRef.current = null;
+      }
 
       // Leave the Agora channel
       await agoraClient.leave();
@@ -629,6 +764,14 @@ export const AgoraProvider = ({ session_id }) => {
     const timestamp = new Date().toISOString();
   
     setAudioClips((prev) => [...prev, { response, stressLevel, timestamp }]);
+  
+    if (response && !response.error) {
+      emotionData.current.push({
+        timestamp,
+        emotion: response.predicted_emotion || response.emotion,
+        stress_level: stressLevel,
+      });
+    }
   };
   
 
@@ -754,7 +897,6 @@ export const AgoraProvider = ({ session_id }) => {
       webRTCStarted.current = true;
       setupWebRTCConnection();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calling, isConnected]);
 
   return (
@@ -786,6 +928,19 @@ export const AgoraProvider = ({ session_id }) => {
                     playsInline
                   />
                   <samp className="user-name">{user.uid}</samp>
+                </div>
+                <div className="user" key={user.uid}>
+                  <Image
+                    ref={(ref) => {
+                      processedRefs.current[user.uid] = ref; // This is already correct
+                    }}
+                    alt={`Processed frame for ${user.uid}`}
+                    style={{
+                      width: "240%",
+                      height: "130%",
+                      objectFit: "cover",
+                    }}
+                  />
                 </div>
               </>
             ))}
@@ -819,7 +974,8 @@ export const AgoraProvider = ({ session_id }) => {
             </button>
           </div>
         )}
-        {isConnected && (
+      </div>
+      {isConnected && (
         <div className="control">
           <div className="left-control">
             <button className="btn" onClick={() => setMic((a) => !a)}>
@@ -848,8 +1004,7 @@ export const AgoraProvider = ({ session_id }) => {
           </button>
         </div>
       )}
-      </div>
-      {/* {isConnected && (
+      {isConnected && (
         <div style={{ width: "100%", height: "400px", marginTop: "100px" }}>
           <h2>📊Vocal Stress Level Graph</h2>
           <Line data={chartData} options={chartOptions} />
@@ -872,7 +1027,7 @@ export const AgoraProvider = ({ session_id }) => {
             </button>
           </div>
         </div>
-      )} */}
+      )}
     </>
   );
 };
