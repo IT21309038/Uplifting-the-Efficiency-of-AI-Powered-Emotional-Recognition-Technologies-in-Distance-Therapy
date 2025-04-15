@@ -52,6 +52,10 @@ export const AgoraProvider = ({ session_id }) => {
   const [channel, setChannel] = useState(sessionID);
   const [token, setToken] = useState("");
 
+  //graph data
+  const [stressHistory, setStressHistory] = useState([]);
+  const [emotionHistory, setEmotionHistory] = useState([]);
+
   const agoraClient = useRTCClient();
   useJoin(
     { appid: appId, channel: channel, token: token ? token : null },
@@ -76,7 +80,7 @@ export const AgoraProvider = ({ session_id }) => {
 
   const audioRecorders = useRef({}); // Store active MediaRecorders
   const audioIntervals = useRef({}); // Store setIntervals for audio capture
-  const emotionData = useRef([]); // Store detected emotions and stress levels
+  const emotionData1 = useRef([]); // Store detected emotions and stress levels
   const [sessionReport, setSessionReport] = useState(null); // Store session report
 
   const [audioClips, setAudioClips] = useState([]); // Store audio clips and responses
@@ -106,13 +110,18 @@ export const AgoraProvider = ({ session_id }) => {
       try {
         const data = JSON.parse(event.data);
         console.log("📥 Real-time Emotion/Stress from backend:", data);
-    
-        // Update your chart or session state
-        updateChart({
-          predicted_emotion: data.emotion,
-          stressLevel: data.stressLevel,
-          probabilities: {}, // optional, structure compatibility
-        });
+
+        const timestamp = new Date().toISOString();
+
+        setStressHistory((prev) => [
+          ...prev,
+          { timestamp, userId: data.userId, stress: data.stressLevel },
+        ]);
+
+        setEmotionHistory((prev) => [
+          ...prev,
+          { timestamp, userId: data.userId, emotion: data.emotion },
+        ]);
       } catch (err) {
         console.error("❌ Failed to parse WebRTC message:", err);
       }
@@ -625,19 +634,19 @@ export const AgoraProvider = ({ session_id }) => {
   };
 
   const updateChart = (response) => {
-    const stressLevel = response.stressLevel ?? calculateStress(response.probabilities);
+    const stressLevel =
+      response.stressLevel ?? calculateStress(response.probabilities);
     const timestamp = new Date().toISOString();
-  
+
     setAudioClips((prev) => [...prev, { response, stressLevel, timestamp }]);
   };
-  
 
   const generateSessionReport = async () => {
-    if (emotionData.current.length === 0) return;
+    if (emotionData1.current.length === 0) return;
 
     const requestData = {
       session_id: "TEST-001",
-      data: emotionData.current,
+      data: emotionData1.current,
     };
 
     console.log("oooooo", JSON.stringify(requestData));
@@ -757,6 +766,80 @@ export const AgoraProvider = ({ session_id }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calling, isConnected]);
 
+  const emotionLabels = [
+    "Anger",
+    "Disgust",
+    "Fear",
+    "Happy",
+    "Neutral",
+    "Sad",
+    "Surprise",
+  ];
+
+  const stressData = {
+    labels: stressHistory.map((entry) =>
+      new Date(entry.timestamp).toLocaleTimeString()
+    ),
+    datasets: [
+      {
+        label: "Stress Level",
+        data: stressHistory.map((entry) => entry.stress),
+        borderColor: "rgba(255, 99, 132, 1)",
+        backgroundColor: "rgba(255, 99, 132, 0.2)",
+        tension: 0.4,
+      },
+    ],
+  };
+
+  const stressOptions = {
+    responsive: true,
+    plugins: {
+      title: { display: true, text: "Stress Level Over Time" },
+    },
+    scales: {
+      y: {
+        min: -2,
+        max: 5,
+        ticks: { stepSize: 1 },
+      },
+    },
+  };
+
+  const emotionData = {
+    labels: emotionHistory.map((entry) =>
+      new Date(entry.timestamp).toLocaleTimeString()
+    ),
+    datasets: [
+      {
+        label: "Emotion",
+        data: emotionHistory.map((entry) =>
+          emotionLabels.indexOf(entry.emotion)
+        ),
+        borderColor: "rgba(54, 162, 235, 1)",
+        backgroundColor: "rgba(54, 162, 235, 0.2)",
+        stepped: true,
+        tension: 0.1,
+      },
+    ],
+  };
+
+  const emotionOptions = {
+    responsive: true,
+    plugins: {
+      title: { display: true, text: "Emotion Over Time" },
+    },
+    scales: {
+      y: {
+        ticks: {
+          callback: (val) => emotionLabels[val] ?? "",
+        },
+        stepSize: 1,
+        min: 0,
+        max: emotionLabels.length - 1,
+      },
+    },
+  };
+
   return (
     <>
       <div className="room">
@@ -820,35 +903,49 @@ export const AgoraProvider = ({ session_id }) => {
           </div>
         )}
         {isConnected && (
-        <div className="control">
-          <div className="left-control">
-            <button className="btn" onClick={() => setMic((a) => !a)}>
-              <i className={`i-microphone ${!micOn ? "off" : ""}`} />
-            </button>
-            <button className="btn" onClick={() => setCamera((a) => !a)}>
-              <i className={`i-camera ${!cameraOn ? "off" : ""}`} />
+          <div className="control">
+            <div className="left-control">
+              <button className="btn" onClick={() => setMic((a) => !a)}>
+                <i className={`i-microphone ${!micOn ? "off" : ""}`} />
+              </button>
+              <button className="btn" onClick={() => setCamera((a) => !a)}>
+                <i className={`i-camera ${!cameraOn ? "off" : ""}`} />
+              </button>
+            </div>
+            <button
+              className={`btn btn-phone ${calling ? "btn-phone-active" : ""}`}
+              onClick={() => {
+                if (calling) {
+                  handleHangup(); // Call hangup function
+                  generateSessionReport();
+                } else {
+                  setCalling(true); // Join call
+                }
+              }}
+            >
+              {calling ? (
+                <i className="i-phone-hangup" />
+              ) : (
+                <i className="i-mdi-phone" />
+              )}
             </button>
           </div>
-          <button
-            className={`btn btn-phone ${calling ? "btn-phone-active" : ""}`}
-            onClick={() => {
-              if (calling) {
-                handleHangup(); // Call hangup function
-                generateSessionReport();
-              } else {
-                setCalling(true); // Join call
-              }
-            }}
-          >
-            {calling ? (
-              <i className="i-phone-hangup" />
-            ) : (
-              <i className="i-mdi-phone" />
-            )}
-          </button>
-        </div>
-      )}
+        )}
       </div>
+      {isConnected && (
+        <>
+          <div style={{ width: "100%", height: "300px", marginTop: "50px" }}>
+            <h3>📈 Real-time Stress Graph</h3>
+            <Line data={stressData} options={stressOptions} />
+          </div>
+
+          <div style={{ width: "100%", height: "300px", marginTop: "50px" }}>
+            <h3>📊 Real-time Emotion Trend</h3>
+            <Line data={emotionData} options={emotionOptions} />
+          </div>
+        </>
+      )}
+
       {/* {isConnected && (
         <div style={{ width: "100%", height: "400px", marginTop: "100px" }}>
           <h2>📊Vocal Stress Level Graph</h2>
