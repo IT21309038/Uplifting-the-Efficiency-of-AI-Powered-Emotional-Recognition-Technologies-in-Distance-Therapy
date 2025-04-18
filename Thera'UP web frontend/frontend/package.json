@@ -24,6 +24,7 @@
     "audiobuffer-to-wav": "^1.0.0",
     "axios": "^1.7.7",
     "chart.js": "^4.4.8",
+    "chartjs-plugin-zoom": "^2.2.0",
     "d3": "^7.9.0",
     "face-api.js": "^0.22.2",
     "next": "15.0.2",
