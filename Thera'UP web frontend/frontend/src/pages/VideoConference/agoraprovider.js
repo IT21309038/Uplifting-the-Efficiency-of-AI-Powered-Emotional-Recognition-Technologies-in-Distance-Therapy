@@ -26,6 +26,9 @@ import * as faceapi from "face-api.js";
 
 import { Line } from "react-chartjs-2";
 
+import Grid from "@mui/material/Grid";
+import { Grid2 } from "@mui/material";
+
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -522,14 +525,13 @@ export const AgoraProvider = ({ session_id }) => {
   };
 
   const stressValues = {
-    angry: 90,
-    calm: -20,
-    disgust: 70,
-    fear: 75,
-    happy: -30,
-    neutral: 0,
-    sad: 60,
-    surprise: -5,
+    angry: 1.0,
+    disgust: 0.7,
+    fear: 0.9,
+    sad: 0.5,
+    neutral: 0.0,
+    happy: -0.5,
+    surprise: -0.2,
   };
 
   const calculateStress = (probabilities) => {
@@ -776,31 +778,88 @@ export const AgoraProvider = ({ session_id }) => {
     "Surprise",
   ];
 
+  // Prepare two datasets based on stressHistory
+  const positiveStressData = stressHistory.map((entry) =>
+    entry.stress >= 0 ? entry.stress : null
+  );
+  const negativeStressData = stressHistory.map((entry) =>
+    entry.stress < 0 ? entry.stress : null
+  );
+
   const stressData = {
     labels: stressHistory.map((entry) =>
-      new Date(entry.timestamp).toLocaleTimeString()
+      new Date(entry.timestamp).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      })
     ),
     datasets: [
       {
-        label: "Stress Level",
-        data: stressHistory.map((entry) => entry.stress),
-        borderColor: "rgba(255, 99, 132, 1)",
-        backgroundColor: "rgba(255, 99, 132, 0.2)",
+        label: "Positive Stress",
+        data: positiveStressData,
+        borderColor: "#ff4d4d", // red
+        backgroundColor: "rgba(255, 77, 77, 0.2)",
         tension: 0.4,
+        spanGaps: true, // allow skipping nulls
+      },
+      {
+        label: "Negative Stress",
+        data: negativeStressData,
+        borderColor: "#00cc66", // green
+        backgroundColor: "rgba(0, 204, 102, 0.2)",
+        tension: 0.4,
+        spanGaps: true, // allow skipping nulls
       },
     ],
   };
+
+  const stressValuesArray = stressHistory.map((entry) => entry.stress);
+
+  // If no data yet, fallback to default
+  const minStress =
+    stressValuesArray.length > 0 ? Math.min(...stressValuesArray) : -1;
+  const maxStress =
+    stressValuesArray.length > 0 ? Math.max(...stressValuesArray) : 1.2;
+
+  // Add some headroom (padding)
+  const padding = 0.2; // add 0.2 up and down
+  const dynamicMin = minStress - padding;
+  const dynamicMax = maxStress + padding;
 
   const stressOptions = {
     responsive: true,
     plugins: {
       title: { display: true, text: "Stress Level Over Time" },
+      legend: {
+        display: true,
+        position: "top",
+      },
+      animation: {
+        duration: 500,
+        easing: "easeOutQuart",
+      },
     },
     scales: {
       y: {
-        min: -2,
-        max: 5,
-        ticks: { stepSize: 1 },
+        min: dynamicMin,
+        max: dynamicMax,
+        ticks: {
+          stepSize: (dynamicMax - dynamicMin) / 10, // 10 steps dynamically
+          callback: function (value) {
+            return value.toFixed(1);
+          },
+        },
+        title: {
+          display: true,
+          text: "Stress Level",
+        },
+      },
+      x: {
+        title: {
+          display: true,
+          text: "Time",
+        },
       },
     },
   };
@@ -842,134 +901,146 @@ export const AgoraProvider = ({ session_id }) => {
 
   return (
     <>
-      <div className="room">
-        {isConnected ? (
-          <div className="user-list">
-            <div className="user" style={{ width: "250px", height: "400px" }}>
-              <LocalUser
-                audioTrack={localMicrophoneTrack}
-                cameraOn={cameraOn}
-                micOn={micOn}
-                videoTrack={localCameraTrack}
-                cover="https://www.agora.io/en/wp-content/uploads/2022/10/3d-spatial-audio-icon.svg"
-              >
-                <samp className="user-name">You</samp>
-              </LocalUser>
-            </div>
-            {remoteUsers.map((user) => (
-              <>
-                <div className="user" key={user.uid}>
-                  <video
-                    style={{ width: "105% ", height: "175%" }}
-                    ref={(ref) => {
-                      if (ref) videoRefs.current[user.uid] = ref;
+      {isConnected ? (
+        <Grid2 container spacing={2}>
+          <Grid2 size={7}>
+            <Grid2
+              container
+              spacing={2}
+              sx={{ display: "flex", flexDirection: "row" }}
+            >
+              <Grid2 size={12}>
+                <Grid2 container spacing={2}>
+                  <Grid2 size={3} sx={{ height: "200px" }}>
+                    <LocalUser
+                      audioTrack={localMicrophoneTrack}
+                      cameraOn={cameraOn}
+                      micOn={micOn}
+                      videoTrack={localCameraTrack}
+                      cover="https://www.agora.io/en/wp-content/uploads/2022/10/3d-spatial-audio-icon.svg"
+                    >
+                      <samp className="user-name">You</samp>
+                    </LocalUser>
+                  </Grid2>
+                  <Grid2
+                    size={9}
+                    sx={{
+                      height: "430px",
+                      position: "relative",
+                      overflow: "hidden",
                     }}
-                    autoPlay
-                    muted={false}
-                    playsInline
-                  />
-                  <samp className="user-name">{user.uid}</samp>
+                  >
+                    {remoteUsers.map((user) => (
+                      <video
+                        key={user.uid}
+                        ref={(ref) => {
+                          if (ref) videoRefs.current[user.uid] = ref;
+                        }}
+                        autoPlay
+                        muted={false}
+                        playsInline
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover", // or "contain" depending on your preference
+                          display: "block",
+                        }}
+                      />
+                    ))}
+                  </Grid2>
+                </Grid2>
+              </Grid2>
+              <Grid2 size={12} sx={{ height: "70px" }}>
+                <div className="control">
+                  <div className="left-control">
+                    <button className="btn" onClick={() => setMic((a) => !a)}>
+                      <i className={`i-microphone ${!micOn ? "off" : ""}`} />
+                    </button>
+                    <button
+                      className="btn"
+                      onClick={() => setCamera((a) => !a)}
+                    >
+                      <i className={`i-camera ${!cameraOn ? "off" : ""}`} />
+                    </button>
+                  </div>
+                  <button
+                    className={`btn btn-phone ${
+                      calling ? "btn-phone-active" : ""
+                    }`}
+                    onClick={() => {
+                      if (calling) {
+                        handleHangup(); // Call hangup function
+                        generateSessionReport();
+                      } else {
+                        setCalling(true); // Join call
+                      }
+                    }}
+                  >
+                    {calling ? (
+                      <i className="i-phone-hangup" />
+                    ) : (
+                      <i className="i-mdi-phone" />
+                    )}
+                  </button>
                 </div>
-              </>
-            ))}
-          </div>
-        ) : (
-          <div className="join-room">
-            <input
-              onChange={(e) => setAppId(e.target.value)}
-              placeholder="<Your app ID>"
-              value={appId}
-              disabled
-            />
-            <input
-              onChange={(e) => setChannel(e.target.value)}
-              placeholder="<Your channel Name>"
-              value={channel}
-              disabled
-            />
-            {/* <input
-                              onChange={(e) => setToken(e.target.value)}
-                              placeholder="<Your token>"
-                              value={token}
-                              disabled
-                            /> */}
-            <button
-              className={`join-channel ${!appId || !channel ? "disabled" : ""}`}
-              disabled={!appId || !channel}
-              onClick={() => setCalling(true)}
+              </Grid2>
+            </Grid2>
+          </Grid2>
+          <Grid2 size={5}>
+            <Grid2
+              container
+              spacing={2}
+              sx={{ display: "flex", flexDirection: "row" }}
             >
-              <span>Join Channel</span>
-            </button>
-          </div>
-        )}
-        {isConnected && (
-          <div className="control">
-            <div className="left-control">
-              <button className="btn" onClick={() => setMic((a) => !a)}>
-                <i className={`i-microphone ${!micOn ? "off" : ""}`} />
-              </button>
-              <button className="btn" onClick={() => setCamera((a) => !a)}>
-                <i className={`i-camera ${!cameraOn ? "off" : ""}`} />
+              <Grid2 size={12} sx={{ height: "250px" }}>
+                <Line data={emotionData} options={emotionOptions} />
+              </Grid2>
+              <Grid2 size={12} sx={{ height: "250px" }}>
+                <Line data={stressData} options={stressOptions} />
+              </Grid2>
+            </Grid2>
+          </Grid2>
+          <Grid2 size={6} sx={{ background: "red", height: "200px", pb: 5}}></Grid2>
+          <Grid2 size={6} sx={{ background: "red", height: "200px", pb: 5 }}></Grid2>
+          <Grid2 size={6} sx={{ height: "10px", pb: 5 }}></Grid2>
+          <Grid2 size={6} sx={{ height: "10px", pb: 5 }}></Grid2>
+        </Grid2>
+      ) : (
+        <Grid2 container spacing={2}>
+          <Grid2
+            size={12}
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <div className="join-room">
+              <input
+                onChange={(e) => setAppId(e.target.value)}
+                placeholder="<Your app ID>"
+                value={appId}
+                disabled
+              />
+              <input
+                onChange={(e) => setChannel(e.target.value)}
+                placeholder="<Your channel Name>"
+                value={channel}
+                disabled
+              />
+              <button
+                className={`join-channel ${
+                  !appId || !channel ? "disabled" : ""
+                }`}
+                disabled={!appId || !channel}
+                onClick={() => setCalling(true)}
+              >
+                <span>Join Channel</span>
               </button>
             </div>
-            <button
-              className={`btn btn-phone ${calling ? "btn-phone-active" : ""}`}
-              onClick={() => {
-                if (calling) {
-                  handleHangup(); // Call hangup function
-                  generateSessionReport();
-                } else {
-                  setCalling(true); // Join call
-                }
-              }}
-            >
-              {calling ? (
-                <i className="i-phone-hangup" />
-              ) : (
-                <i className="i-mdi-phone" />
-              )}
-            </button>
-          </div>
-        )}
-      </div>
-      {isConnected && (
-        <>
-          <div style={{ width: "100%", height: "300px", marginTop: "50px" }}>
-            <h3>📈 Real-time Stress Graph</h3>
-            <Line data={stressData} options={stressOptions} />
-          </div>
-
-          <div style={{ width: "100%", height: "300px", marginTop: "50px" }}>
-            <h3>📊 Real-time Emotion Trend</h3>
-            <Line data={emotionData} options={emotionOptions} />
-          </div>
-        </>
+          </Grid2>
+        </Grid2>
       )}
-
-      {/* {isConnected && (
-        <div style={{ width: "100%", height: "400px", marginTop: "100px" }}>
-          <h2>📊Vocal Stress Level Graph</h2>
-          <Line data={chartData} options={chartOptions} />
-        </div>
-      )}
-
-      {!isConnected && sessionReport !== null && (
-        <div style={styles.container}>
-          <h2 style={styles.title}>📄 Session Report</h2>
-          <pre style={styles.report}>
-            {JSON.stringify(sessionReport, null, 2)}
-          </pre>
-
-          <div style={styles.buttonContainer}>
-            <button style={styles.button} onClick={handleCopy}>
-              📋 Copy
-            </button>
-            <button style={styles.button} onClick={handleDownload}>
-              ⬇️ Download
-            </button>
-          </div>
-        </div>
-      )} */}
     </>
   );
 };
