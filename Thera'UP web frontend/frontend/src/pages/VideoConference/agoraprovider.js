@@ -507,7 +507,7 @@ export const AgoraProvider = ({ session_id }) => {
       remoteUsers.forEach((user) => {
         if (user.audioTrack) user.audioTrack.stop();
         if (user.videoTrack) user.videoTrack.stop();
-        if (user) agoraClient.unsubscribe(user);
+        agoraClient.unsubscribe(user);
       });
 
       // Clear frame intervals
@@ -848,42 +848,19 @@ export const AgoraProvider = ({ session_id }) => {
   const audioEmotionOptions = {
     responsive: true,
     plugins: {
-      title: {
-        display: true,
-        text: "Audio Emotion Over Time",
-      },
-      legend: {
-        display: true,
-        position: "top",
-      },
+      title: { display: true, text: "Audio Emotion Over Time" },
     },
     scales: {
       y: {
-        type: "category", // 👈 this is the KEY FIX
-        labels: [
-          "neutral",
-          "calm",
-          "happy",
-          "sad",
-          "angry",
-          "fear",
-          "disgust",
-          "surprise",
-        ],
-        title: {
-          display: true,
-          text: "Emotion",
+        ticks: {
+          callback: (val) => audioEmotionLabels[val] ?? "",
         },
-      },
-      x: {
-        title: {
-          display: true,
-          text: "Time",
-        },
+        stepSize: 1,
+        min: 0,
+        max: audioEmotionLabels.length - 1,
       },
     },
   };
-
   return (
     <>
       {isConnected ? (
