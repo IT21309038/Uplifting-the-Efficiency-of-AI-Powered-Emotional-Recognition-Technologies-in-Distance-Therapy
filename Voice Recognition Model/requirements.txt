@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+tensorflow
+keras
+pydantic
+librosa
+soundfile
+pydub
+numpy
+aiortc
+av

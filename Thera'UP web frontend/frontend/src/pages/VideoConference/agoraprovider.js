@@ -85,6 +85,9 @@ export const AgoraProvider = ({ session_id }) => {
   const audioIntervals = useRef({}); // Store setIntervals for audio capture
   const emotionData1 = useRef([]); // Store detected emotions and stress levels
   const [sessionReport, setSessionReport] = useState(null); // Store session report
+  const audioSockets = useRef({});
+  const audioBuffers = useRef({}); // Store 15-second audio buffers
+  const [audioEmotionHistory, setAudioEmotionHistory] = useState([]);
 
   const [audioClips, setAudioClips] = useState([]); // Store audio clips and responses
 
@@ -155,6 +158,134 @@ export const AgoraProvider = ({ session_id }) => {
     await peerConnection.setRemoteDescription(
       new RTCSessionDescription(answer)
     );
+  };
+
+  // Process remote audio streams
+  const processRemoteAudio = async (user) => {
+    try {
+      await agoraClient.subscribe(user, "audio");
+      const audioTrack = user.audioTrack;
+
+      if (!audioTrack) {
+        console.log(`No audio track for user ${user.uid}`);
+        return;
+      }
+
+      // Constants for 15-second audio chunks
+      const SAMPLE_RATE = 16000; // 16kHz
+      const CHUNK_DURATION = 45; // seconds
+      const TARGET_BUFFER_SIZE = SAMPLE_RATE * CHUNK_DURATION;
+      const CHUNK_SIZE = 4096; // Processing chunk size
+
+      // Initialize audio buffer for this user if it doesn't exist
+      if (!audioBuffers.current[user.uid]) {
+        audioBuffers.current[user.uid] = new Float32Array(TARGET_BUFFER_SIZE);
+      }
+
+      let bufferIndex = 0;
+
+      console.log("Buffer state:", {
+        bufferExists: !!audioBuffers.current[user.uid],
+        bufferLength: audioBuffers.current[user.uid]?.length,
+        bufferIndex,
+      });
+
+      const audioContext = new (window.AudioContext ||
+        window.webkitAudioContext)();
+      const source = audioContext.createMediaStreamSource(
+        new MediaStream([audioTrack.getMediaStreamTrack()])
+      );
+
+      const processor = audioContext.createScriptProcessor(CHUNK_SIZE, 1, 1);
+
+      processor.onaudioprocess = (e) => {
+        // Ensure buffer exists
+        if (!audioBuffers.current[user.uid]) {
+          console.error(`Audio buffer not initialized for user ${user.uid}`);
+          return;
+        }
+        const audioData = e.inputBuffer.getChannelData(0);
+
+        // Calculate remaining space in buffer
+        const remainingSpace = TARGET_BUFFER_SIZE - bufferIndex;
+        const samplesToCopy = Math.min(audioData.length, remainingSpace);
+
+        // Copy audio data to buffer
+        audioBuffers.current[user.uid].set(
+          audioData.subarray(0, samplesToCopy),
+          bufferIndex
+        );
+        bufferIndex += samplesToCopy;
+
+        // When buffer is full (15 seconds collected)
+        if (bufferIndex >= TARGET_BUFFER_SIZE) {
+          const ws = audioSockets.current[user.uid];
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            // Send the exact 15-second chunk
+            ws.send(audioBuffers.current[user.uid].buffer);
+
+            // Debug log
+            console.log(`📤 Sent 15-second audio chunk for user ${user.uid}`, {
+              samples: bufferIndex,
+              duration: `${bufferIndex / SAMPLE_RATE} seconds`,
+            });
+          }
+
+          // Reset buffer
+          audioBuffers.current[user.uid] = new Float32Array(TARGET_BUFFER_SIZE);
+          bufferIndex = 0;
+
+          // If there's remaining audio data, add it to the new buffer
+          if (samplesToCopy < audioData.length) {
+            const remainingData = audioData.subarray(samplesToCopy);
+            audioBuffers.current[user.uid].set(remainingData);
+            bufferIndex = remainingData.length;
+          }
+        }
+      };
+
+      source.connect(processor);
+      processor.connect(audioContext.destination);
+
+      // WebSocket connection
+      const ws = new WebSocket(
+        `ws://localhost:8001/ws/audio-stream?userId=${user.uid}`
+      );
+      audioSockets.current[user.uid] = ws;
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log("🔊 Received analysis:", data);
+          updateChart(data);
+        } catch (error) {
+          console.error("Error processing prediction:", error);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error(`WebSocket error for user ${user.uid}:`, error);
+      };
+
+      ws.onclose = () => {
+        console.log(`WebSocket closed for user ${user.uid}`);
+        cleanupRemoteAudio(user.uid);
+      };
+
+      console.log(`🎤 Started 15-sec audio streaming for user ${user.uid}`);
+    } catch (error) {
+      console.error(`Error processing audio for user ${user.uid}:`, error);
+      cleanupRemoteAudio(user.uid);
+    }
+  };
+
+  // Cleanup function
+  const cleanupRemoteAudio = (userId) => {
+    if (audioSockets.current[userId]) {
+      audioSockets.current[userId].close();
+      delete audioSockets.current[userId];
+    }
+    delete audioBuffers.current[userId];
   };
 
   useEffect(() => {
@@ -328,125 +459,7 @@ export const AgoraProvider = ({ session_id }) => {
         }
       } else if (mediaType === "audio") {
         console.log(`User ${user.uid} published audio stream`);
-        await agoraClient.subscribe(user, "audio");
-        const audioTrack = user.audioTrack;
-        if (audioTrack) {
-          try {
-            console.log(`🔊 Remote User ${user.uid} audio track detected`);
-            audioTrack.play(); // Ensures track is active
-
-            // ✅ Log track details
-            console.log(
-              `🔍 Track readyState: ${
-                audioTrack.getMediaStreamTrack().readyState
-              }`
-            );
-
-            // ✅ Create a MediaStream from the Agora remote audio track
-            const stream = new MediaStream([audioTrack.getMediaStreamTrack()]);
-            console.log("✅ Created MediaStream for audio recording", stream);
-
-            const mediaRecorder = new MediaRecorder(stream, {
-              mimeType: "audio/webm;codecs=opus",
-            });
-
-            audioBuffers[user.uid] = []; // Store recorded chunks per user
-
-            try {
-              console.log(`🎤 Starting MediaRecorder for User ${user.uid}...`);
-
-              mediaRecorder.start();
-              console.log(`🎥 MediaRecorder state: ${mediaRecorder.state}`);
-            } catch (error) {
-              console.error(
-                `❌ Failed to start MediaRecorder for User ${user.uid}:`,
-                error
-              );
-            }
-
-            mediaRecorder.ondataavailable = async (event) => {
-              if (event.data.size > 0) {
-                console.log(`✅ Received audio chunk from User ${user.uid}`);
-                audioBuffers[user.uid].push(event.data);
-              }
-            };
-            console.log("aaaaa");
-            audioIntervals[user.uid] = setInterval(async () => {
-              if (mediaRecorder.state === "recording") {
-                console.log(
-                  `🛑 Stopping MediaRecorder for User ${user.uid} to finalize WebM file.`
-                );
-
-                mediaRecorder.stop(); // Stop ensures WebM file is finalized
-
-                mediaRecorder.onstop = async () => {
-                  console.log(
-                    `✅ MediaRecorder stopped for User ${user.uid}, processing audio...`
-                  );
-
-                  if (audioBuffers[user.uid].length > 0) {
-                    const webmBlob = new Blob(audioBuffers[user.uid], {
-                      type: "audio/webm",
-                    });
-
-                    // ✅ Convert WebM to WAV
-                    const wavBlob = await convertWebMtoWAV(webmBlob);
-
-                    // ✅ Send to API
-                    await sendAudioToAPI(wavBlob, user.uid);
-
-                    // ✅ Clear buffer after sending
-                    audioBuffers[user.uid] = [];
-                  }
-
-                  setTimeout(() => {
-                    console.log(
-                      `🔄 Restarting MediaRecorder for User ${user.uid}...`
-                    );
-                    try {
-                      mediaRecorder.start();
-                      console.log(
-                        `🎥 MediaRecorder state: ${mediaRecorder.state}`
-                      );
-                    } catch (error) {
-                      console.error(
-                        `❌ Failed to start MediaRecorder for User ${user.uid}:`,
-                        error
-                      );
-                    }
-                  }, 500);
-                };
-              }
-            }, 15000);
-
-            // ✅ Manually trigger `ondataavailable`
-            setInterval(() => {
-              if (mediaRecorder.state === "recording") {
-                // ✅ Check if recording
-                console.log(
-                  `🔄 Forcing ondataavailable for User ${user.uid}...`
-                );
-                mediaRecorder.requestData();
-              } else {
-                console.warn(
-                  `⚠️ MediaRecorder is in '${mediaRecorder.state}' state, skipping requestData()`
-                );
-              }
-            }, 3000);
-
-            mediaRecorder.ondataavailable = async (event) => {
-              if (event.data.size > 0) {
-                console.log(`✅ Received audio chunk from User ${user.uid}`);
-                audioBuffers[user.uid].push(event.data);
-              }
-            };
-          } catch (error) {
-            console.error(
-              `❌ Error processing audio for User ${user.uid}:`,
-              error
-            );
-          }
-        }
+        await processRemoteAudio(user);
       }
     };
 
@@ -459,12 +472,7 @@ export const AgoraProvider = ({ session_id }) => {
         }
       }
       if (mediaType === "audio") {
-        console.log(`User ${user.uid} unpublished audio stream`);
-        const audioTrack = user.audioTrack;
-        if (audioTrack) {
-          audioTrack.stop();
-          console.log(`User ${user.uid} audio playback stopped`);
-        }
+        cleanupRemoteAudio(user.uid);
       }
     };
 
@@ -499,7 +507,7 @@ export const AgoraProvider = ({ session_id }) => {
       remoteUsers.forEach((user) => {
         if (user.audioTrack) user.audioTrack.stop();
         if (user.videoTrack) user.videoTrack.stop();
-        agoraClient.unsubscribe(user);
+        if (user) agoraClient.unsubscribe(user);
       });
 
       // Clear frame intervals
@@ -578,184 +586,6 @@ export const AgoraProvider = ({ session_id }) => {
     calculateMovingAverage(audioClips.slice(0, index + 1), 5)
   );
 
-  const chartData = {
-    labels: audioClips.map((clip) => {
-      const localTime = new Date(clip.timestamp).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      });
-      return localTime; // Use formatted local time instead of raw timestamp
-    }),
-    datasets: [
-      {
-        label: "Stress Level",
-        data: audioClips.map((clip) => clip.stressLevel),
-        borderColor: "rgba(54, 162, 235, 1)",
-        backgroundColor: "rgba(54, 162, 235, 0.2)",
-        tension: 0.4,
-      },
-      {
-        label: "Average Stress Level (Last 5 Clips)",
-        data: movingAverages,
-        borderColor: "rgba(255, 99, 132, 1)",
-        backgroundColor: "rgba(255, 99, 132, 0.2)",
-        tension: 0.4,
-      },
-    ],
-  };
-
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: "top",
-      },
-      title: {
-        display: true,
-        text: "Stress Levels Over Time",
-      },
-    },
-    scales: {
-      x: {
-        type: "category",
-        ticks: {
-          autoSkip: false,
-        },
-      },
-      y: {
-        beginAtZero: true,
-        min: 0,
-        max: 100,
-        ticks: {
-          stepSize: 10,
-        },
-      },
-    },
-  };
-
-  const updateChart = (response) => {
-    const stressLevel =
-      response.stressLevel ?? calculateStress(response.probabilities);
-    const timestamp = new Date().toISOString();
-
-    setAudioClips((prev) => [...prev, { response, stressLevel, timestamp }]);
-  };
-
-  const generateSessionReport = async () => {
-    if (emotionData1.current.length === 0) return;
-
-    const requestData = {
-      session_id: "TEST-001",
-      data: emotionData1.current,
-    };
-
-    console.log("oooooo", JSON.stringify(requestData));
-    try {
-      const response = await fetch(
-        "http://127.0.0.1:8001/generate-session-report/",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestData),
-        }
-      );
-
-      if (response.ok) {
-        const report = await response.json();
-        setSessionReport(report.report);
-        console.log("✅ Session Report:", report.report);
-      } else {
-        console.error("❌ Failed to generate session report");
-      }
-    } catch (error) {
-      console.error("❌ Error connecting to session report API:", error);
-    }
-  };
-
-  async function sendAudioToAPI(wavBlob, userId) {
-    try {
-      const formData = new FormData();
-      formData.append("file", wavBlob, `audio_${userId}.wav`);
-
-      console.log(`🚀 Sending WAV to FastAPI for Remote User ${userId}...`);
-
-      const response = await fetch("http://127.0.0.1:8001/predict/", {
-        method: "POST",
-        body: formData,
-      });
-      const result = await response.json();
-      updateChart(result);
-      console.log(`✅ Emotion Prediction for User ${userId}:`, result);
-    } catch (error) {
-      console.error(`❌ Error sending audio for User ${userId}:`, error);
-    }
-  }
-
-  async function convertWebMtoWAV(webmBlob) {
-    console.log("eeeeeeeeeeeeee");
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsArrayBuffer(webmBlob);
-
-      reader.onloadend = async () => {
-        try {
-          const audioContext = new (window.AudioContext ||
-            window.webkitAudioContext)();
-
-          const arrayBuffer = reader.result;
-
-          if (!arrayBuffer || arrayBuffer.byteLength < 1000) {
-            reject("⚠️ WebM file is empty or corrupt!");
-            return;
-          }
-
-          // ✅ Decode WebM to AudioBuffer
-          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-          console.log("✅ Successfully decoded WebM audio");
-
-          // ✅ Convert AudioBuffer to WAV
-          const wavBuffer = AudioBufferToWav(audioBuffer);
-          const wavBlob = new Blob([wavBuffer], { type: "audio/wav" });
-
-          console.log("🎤 Converted WAV File Size:", wavBlob.size);
-
-          if (wavBlob.size < 1000) {
-            reject("⚠️ Converted WAV file is empty!");
-            return;
-          }
-
-          resolve(wavBlob);
-        } catch (error) {
-          reject("❌ Error decoding WebM audio: " + error.message);
-        }
-      };
-
-      reader.onerror = reject;
-    });
-  }
-
-  const handleDownload = () => {
-    const blob = new Blob([JSON.stringify(sessionReport, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "session_report.json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(JSON.stringify(sessionReport, null, 2));
-    alert("📋 Session report copied to clipboard!");
-  };
-
   const webRTCStarted = useRef(false);
 
   useEffect(() => {
@@ -763,7 +593,7 @@ export const AgoraProvider = ({ session_id }) => {
 
     if (calling && isConnected && !webRTCStarted.current) {
       webRTCStarted.current = true;
-      setupWebRTCConnection();
+      // setupWebRTCConnection();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calling, isConnected]);
@@ -899,6 +729,161 @@ export const AgoraProvider = ({ session_id }) => {
     },
   };
 
+  const chartData = {
+    labels: audioClips.map((clip) => {
+      const localTime = new Date(clip.timestamp).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+      return localTime; // Use formatted local time instead of raw timestamp
+    }),
+    datasets: [
+      {
+        label: "Stress Level",
+        data: audioClips.map((clip) => clip.stressLevel),
+        borderColor: "rgba(54, 162, 235, 1)",
+        backgroundColor: "rgba(54, 162, 235, 0.2)",
+        tension: 0.4,
+      },
+      {
+        label: "Average Stress Level (Last 5 Clips)",
+        data: movingAverages,
+        borderColor: "rgba(255, 99, 132, 1)",
+        backgroundColor: "rgba(255, 99, 132, 0.2)",
+        tension: 0.4,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: "top",
+      },
+      title: {
+        display: true,
+        text: "Stress Levels Over Time",
+      },
+    },
+    scales: {
+      x: {
+        type: "category",
+        ticks: {
+          autoSkip: false,
+        },
+      },
+      y: {
+        beginAtZero: true,
+        min: 0,
+        max: 100,
+        ticks: {
+          stepSize: 10,
+        },
+      },
+    },
+  };
+
+  const updateChart = (response) => {
+    if (!response) return;
+
+    try {
+      const stressLevel = response.stressLevel ?? 0.0; // Use server-provided stress level
+      const timestamp = response.timestamp || new Date().toISOString(); // Use server timestamp or fallback to now
+      const emotion = response.emotion ?? "neutral"; // Emotion if needed
+
+      setAudioClips((prev) => [
+        ...prev,
+        {
+          stressLevel,
+          timestamp,
+          emotion,
+          probabilities: response.probabilities || {},
+        },
+      ]);
+      setAudioEmotionHistory((prev) => [...prev, { timestamp, emotion }]);
+
+      // Optionally, you can store emotionData.current[] also here if you need
+      emotionData1.current.push({
+        timestamp: timestamp,
+        emotion: emotion,
+        stress_level: stressLevel,
+      });
+    } catch (error) {
+      console.error("⚠️ Error updating chart with response:", error);
+    }
+  };
+
+  const audioEmotionLabels = [
+    "neutral",
+    "calm",
+    "happy",
+    "sad",
+    "angry",
+    "fear",
+    "disgust",
+    "surprise",
+  ];
+
+  const audioEmotionData = {
+    labels: audioEmotionHistory.map((entry) =>
+      new Date(entry.timestamp).toLocaleTimeString()
+    ),
+    datasets: [
+      {
+        label: "Detected Audio Emotion",
+        data: audioEmotionHistory.map((entry) =>
+          audioEmotionLabels.indexOf(entry.emotion)
+        ),
+        borderColor: "rgba(255, 165, 0, 1)", // orange line
+        backgroundColor: "rgba(255, 165, 0, 0.2)",
+        stepped: true,
+        tension: 0.1,
+      },
+    ],
+  };
+
+  const audioEmotionOptions = {
+    responsive: true,
+    plugins: {
+      title: {
+        display: true,
+        text: "Audio Emotion Over Time",
+      },
+      legend: {
+        display: true,
+        position: "top",
+      },
+    },
+    scales: {
+      y: {
+        type: "category", // 👈 this is the KEY FIX
+        labels: [
+          "neutral",
+          "calm",
+          "happy",
+          "sad",
+          "angry",
+          "fear",
+          "disgust",
+          "surprise",
+        ],
+        title: {
+          display: true,
+          text: "Emotion",
+        },
+      },
+      x: {
+        title: {
+          display: true,
+          text: "Time",
+        },
+      },
+    },
+  };
+
   return (
     <>
       {isConnected ? (
@@ -970,7 +955,7 @@ export const AgoraProvider = ({ session_id }) => {
                     onClick={() => {
                       if (calling) {
                         handleHangup(); // Call hangup function
-                        generateSessionReport();
+                        // generateSessionReport();
                       } else {
                         setCalling(true); // Join call
                       }
@@ -1000,8 +985,12 @@ export const AgoraProvider = ({ session_id }) => {
               </Grid2>
             </Grid2>
           </Grid2>
-          <Grid2 size={6} sx={{ background: "red", height: "200px", pb: 5}}></Grid2>
-          <Grid2 size={6} sx={{ background: "red", height: "200px", pb: 5 }}></Grid2>
+          <Grid2 size={6} sx={{ height: "400px", pb: 5 }}>
+            <Line data={chartData} options={chartOptions} />
+          </Grid2>
+          <Grid2 size={6} sx={{ height: "400px", pb: 5 }}>
+            <Line data={audioEmotionData} options={audioEmotionOptions} />
+          </Grid2>
           <Grid2 size={6} sx={{ height: "10px", pb: 5 }}></Grid2>
           <Grid2 size={6} sx={{ height: "10px", pb: 5 }}></Grid2>
         </Grid2>
