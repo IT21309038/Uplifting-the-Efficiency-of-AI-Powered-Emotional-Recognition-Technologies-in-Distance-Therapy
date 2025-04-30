@@ -1,11 +1,11 @@
 fastapi
 uvicorn
+numpy
 tensorflow
 keras
-pydantic
 librosa
 soundfile
-pydub
-numpy
-aiortc
-av
+pydantic
+aiofiles
+python-dotenv
+websockets
