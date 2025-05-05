@@ -593,7 +593,7 @@ export const AgoraProvider = ({ session_id }) => {
 
     if (calling && isConnected && !webRTCStarted.current) {
       webRTCStarted.current = true;
-      // setupWebRTCConnection();
+      setupWebRTCConnection();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calling, isConnected]);
