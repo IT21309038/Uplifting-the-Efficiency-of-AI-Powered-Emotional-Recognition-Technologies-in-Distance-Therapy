@@ -1,10 +1,7 @@
 package com.rp.thera.up.exception;
 
 import com.rp.thera.up.ResponseHandler;
-import com.rp.thera.up.customException.DoctorException;
-import com.rp.thera.up.customException.GlobalGetException;
-import com.rp.thera.up.customException.PatientException;
-import com.rp.thera.up.customException.PostTherapyException;
+import com.rp.thera.up.customException.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -40,6 +37,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(PostTherapyException.class)
     public ResponseEntity<Object> handlePostTherapyException(PostTherapyException e, WebRequest request){
+        return ResponseHandler.responseBuilder(e.getMessage(), e.getStatus(), null);
+    }
+
+    @ExceptionHandler(StorageException.class)
+    public ResponseEntity<Object> handleStorageException(StorageException e, WebRequest request){
         return ResponseHandler.responseBuilder(e.getMessage(), e.getStatus(), null);
     }
 }
