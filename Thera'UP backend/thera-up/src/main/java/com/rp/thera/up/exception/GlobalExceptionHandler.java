@@ -44,4 +44,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Object> handleStorageException(StorageException e, WebRequest request){
         return ResponseHandler.responseBuilder(e.getMessage(), e.getStatus(), null);
     }
+
+    @ExceptionHandler(ReportException.class)
+    public ResponseEntity<Object> handleReportException(ReportException e, WebRequest request){
+        return ResponseHandler.responseBuilder(e.getMessage(), e.getStatus(), null);
+    }
 }

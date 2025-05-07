@@ -1,5 +1,7 @@
 package com.rp.thera.up.DTO.reportDTO;
 
+import com.rp.thera.up.DTO.doctorDTO.DoctorGetDTO;
+import com.rp.thera.up.DTO.patientDTO.PatientGetDTO;
 import com.rp.thera.up.entity.Doctor;
 import com.rp.thera.up.entity.Patient;
 import lombok.AllArgsConstructor;
@@ -15,8 +17,8 @@ public class GetReportDTO {
 
     private String report_url;
 
-    private Patient patient;
-    private Doctor doctor;
+    private PatientGetDTO patient;
+    private DoctorGetDTO doctor;
 
     private String session_date;
     private String session_time;
