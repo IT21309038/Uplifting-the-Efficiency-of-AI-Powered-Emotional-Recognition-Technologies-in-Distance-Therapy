@@ -13,6 +13,7 @@ import com.rp.thera.up.repo.PatientRepo;
 import com.rp.thera.up.repo.ReportRepo;
 import com.rp.thera.up.service.ReportService;
 import com.rp.thera.up.service.StorageService;
+import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeToken;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +55,7 @@ public class ReportServiceImpl implements ReportService {
 
 
     @Override
+    @Transactional
     public void createReport(MultipartFile file, CreateReportDTO createReportDTO) throws ReportException {
 
         int patientId = createReportDTO.getPatient_id();
@@ -79,7 +81,7 @@ public class ReportServiceImpl implements ReportService {
 
         String fileExtension = getFileExtension(file);
         String fileUrl = storageService.uploadResource(REPORT_FOLDER,
-                sessionDate + "_" + sessionTime + fileExtension, file);
+                doctor.getFull_name() + "_" + patient.getFull_name() + fileExtension, file);
 
         //Create a new report entity
         Reports report = new Reports();
