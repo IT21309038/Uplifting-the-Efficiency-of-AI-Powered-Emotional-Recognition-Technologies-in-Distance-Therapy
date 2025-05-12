@@ -61,6 +61,9 @@ export const AgoraProvider = ({ session_id }) => {
   const [stressHistory, setStressHistory] = useState([]);
   const [emotionHistory, setEmotionHistory] = useState([]);
 
+  const [stressPlotBlob, setStressPlotBlob] = useState(null);
+  const [emotionPlotBlob, setEmotionPlotBlob] = useState(null);
+
   const agoraClient = useRTCClient();
   useJoin(
     { appid: appId, channel: channel, token: token ? token : null },
@@ -92,6 +95,14 @@ export const AgoraProvider = ({ session_id }) => {
   const [audioEmotionHistory, setAudioEmotionHistory] = useState([]);
 
   const [audioClips, setAudioClips] = useState([]); // Store audio clips and responses
+
+  const fetchPlotAsBlob = async (uid, type) => {
+    const response = await fetch(
+      `http://localhost:8000/final_${type}_plot/${uid}`
+    );
+    if (!response.ok) throw new Error(`Failed to fetch ${type} plot`);
+    return await response.blob(); // Returns image/png blob
+  };
 
   //WebRTC connection management
   const setupWebRTCConnection = async () => {
@@ -470,7 +481,7 @@ export const AgoraProvider = ({ session_id }) => {
       }
     };
 
-    const handleUserUnpublished = (user, mediaType) => {
+    const handleUserUnpublished = async (user, mediaType) => {
       if (mediaType === "video") {
         if (frameIntervals.current[user.uid]) {
           clearInterval(frameIntervals.current[user.uid]);
@@ -480,6 +491,22 @@ export const AgoraProvider = ({ session_id }) => {
       }
       if (mediaType === "audio") {
         cleanupRemoteAudio(user.uid);
+      }
+      try {
+        console.log(
+          `📤 Remote user ${user.uid} left — fetching final plots...`
+        );
+        const [stressBlob, emotionBlob] = await Promise.all([
+          fetchPlotAsBlob(String(user.uid), "stress"),
+          fetchPlotAsBlob(String(user.uid), "emotion"),
+        ]);
+        console.log("📷 Stress Plot Blob:", stressBlob?.type, stressBlob?.size);
+        console.log("📷 Emotion Plot Blob:", emotionBlob?.type, emotionBlob?.size);
+        setStressPlotBlob(stressBlob);
+        setEmotionPlotBlob(emotionBlob);
+        console.log("✅ Final plots fetched and stored in state.");
+      } catch (err) {
+        console.error("❌ Failed to fetch plots:", err);
       }
     };
 
@@ -509,29 +536,29 @@ export const AgoraProvider = ({ session_id }) => {
         localCameraTrack.stop();
         localCameraTrack.close();
       }
-  
+
       // Stop and unsubscribe remote users if still connected
       if (agoraClient.connection?.state === "CONNECTED") {
         remoteUsers.forEach((user) => {
           if (user.audioTrack) user.audioTrack.stop();
           if (user.videoTrack) user.videoTrack.stop();
-  
+
           try {
             agoraClient.unsubscribe(user);
           } catch (err) {
             console.warn(`⚠️ Unsubscribe failed for ${user.uid}:`, err.message);
           }
         });
-  
+
         await agoraClient.leave(); // only after unsubscribing
       }
-  
+
       // Clear intervals
       Object.keys(frameIntervals.current).forEach((userId) => {
         clearInterval(frameIntervals.current[userId]);
         delete frameIntervals.current[userId];
       });
-  
+
       setCalling(false);
       router.push("/VideoConference");
     } catch (error) {
@@ -540,7 +567,6 @@ export const AgoraProvider = ({ session_id }) => {
       router.push("/VideoConference");
     }
   };
-  
 
   const stressValues = {
     angry: 1.0,
@@ -978,6 +1004,24 @@ export const AgoraProvider = ({ session_id }) => {
           <Grid2 size={6} sx={{ height: "400px", pb: 5 }}>
             <Line data={audioEmotionData} options={audioEmotionOptions} />
           </Grid2>
+          {stressPlotBlob && (
+            <Grid2 size={6} sx={{ height: "10px", pb: 5 }}>
+              <img
+                src={URL.createObjectURL(stressPlotBlob)}
+                alt="Stress Plot"
+                style={{ width: "100%", height: "auto" }}
+              />
+            </Grid2>
+          )}
+          {emotionPlotBlob && (
+            <Grid2 size={6} sx={{ height: "10px", pb: 5 }}>
+              <img
+                src={URL.createObjectURL(emotionPlotBlob)}
+                alt="Emotion Plot"
+                style={{ width: "100%", height: "auto" }}
+              />
+            </Grid2>
+          )}
           <Grid2 size={6} sx={{ height: "10px", pb: 5 }}></Grid2>
           <Grid2 size={6} sx={{ height: "10px", pb: 5 }}></Grid2>
         </Grid2>

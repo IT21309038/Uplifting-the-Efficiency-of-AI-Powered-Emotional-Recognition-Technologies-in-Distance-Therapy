@@ -138,7 +138,10 @@ class WebRTCServer:
             async def on_message(message):
                 try:
                     payload = json.loads(message)
-                    uid = payload.get("userId")
+                    uid = str(payload.get("userId"))  # 🔑 Normalize to string
+
+                    logger.info(f"📥 Frame received for UID: {uid} (type: {type(uid)})")
+                    logger.info(f"🗂️ Current keys in connection_states: {list(connection_states.keys())}")
                     base64_frame = payload.get("frameData")
                     if not uid or not base64_frame:
                         return
@@ -198,8 +201,13 @@ async def handle_offer(request: Request):
 
 @app.get("/final_stress_plot/{uid}")
 async def final_stress(uid: str):
+    uid = str(uid)  # 🔑 Normalize
+    logger.info(f"📊 Stress plot request for UID: {uid}")
+    logger.info(f"🗂️ Current keys in connection_states: {list(connection_states.keys())}")
+
     if uid not in connection_states:
-        return {"error": "No data found"}
+        return JSONResponse(content={"error": "No data found"}, status_code=404)
+
     stress_plot, _ = generate_final_plots(
         connection_states[uid].stress_levels, connection_states[uid].window_emotions
     )
@@ -207,8 +215,13 @@ async def final_stress(uid: str):
 
 @app.get("/final_emotion_plot/{uid}")
 async def final_emotion(uid: str):
+    uid = str(uid)  # 🔑 Normalize
+    logger.info(f"📊 Emotion plot request for UID: {uid}")
+    logger.info(f"🗂️ Current keys in connection_states: {list(connection_states.keys())}")
+
     if uid not in connection_states:
-        return {"error": "No data found"}
+        return JSONResponse(content={"error": "No data found"}, status_code=404)
+
     _, emotion_plot = generate_final_plots(
         connection_states[uid].stress_levels, connection_states[uid].window_emotions
     )
