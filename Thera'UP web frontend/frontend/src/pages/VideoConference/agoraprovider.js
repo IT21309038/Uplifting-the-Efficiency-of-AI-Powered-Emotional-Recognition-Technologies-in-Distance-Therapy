@@ -29,6 +29,8 @@ import { Line } from "react-chartjs-2";
 import Grid from "@mui/material/Grid";
 import { Grid2 } from "@mui/material";
 
+import { playRemoteAudioTrack } from "../../utils/agoraUtils";
+
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -302,6 +304,10 @@ export const AgoraProvider = ({ session_id }) => {
             try {
               await videoTrack.play(videoElement);
               console.log(`User ${user.uid} video playback started`);
+              playRemoteAudioTrack(user, videoElement);
+
+              // videoElement.muted = false; // Explicitly unmute after play
+              // videoElement.volume = 1.0; // Ensure volume is max
 
               const canvas = document.createElement("canvas");
               const context = canvas.getContext("2d");
@@ -460,6 +466,7 @@ export const AgoraProvider = ({ session_id }) => {
       } else if (mediaType === "audio") {
         console.log(`User ${user.uid} published audio stream`);
         await processRemoteAudio(user);
+        playRemoteAudioTrack(user);
       }
     };
 
@@ -502,35 +509,38 @@ export const AgoraProvider = ({ session_id }) => {
         localCameraTrack.stop();
         localCameraTrack.close();
       }
-
-      // Stop remote tracks and unsubscribe
-      remoteUsers.forEach((user) => {
-        if (user.audioTrack) user.audioTrack.stop();
-        if (user.videoTrack) user.videoTrack.stop();
-        agoraClient.unsubscribe(user);
-      });
-
-      // Clear frame intervals
+  
+      // Stop and unsubscribe remote users if still connected
+      if (agoraClient.connection?.state === "CONNECTED") {
+        remoteUsers.forEach((user) => {
+          if (user.audioTrack) user.audioTrack.stop();
+          if (user.videoTrack) user.videoTrack.stop();
+  
+          try {
+            agoraClient.unsubscribe(user);
+          } catch (err) {
+            console.warn(`⚠️ Unsubscribe failed for ${user.uid}:`, err.message);
+          }
+        });
+  
+        await agoraClient.leave(); // only after unsubscribing
+      }
+  
+      // Clear intervals
       Object.keys(frameIntervals.current).forEach((userId) => {
         clearInterval(frameIntervals.current[userId]);
         delete frameIntervals.current[userId];
       });
-
-      // Leave the Agora channel
-      await agoraClient.leave();
-
-      // Update calling state
+  
       setCalling(false);
-
-      // Navigate to the specific page
-      router.push("/VideoConference"); // Replace with your target page
+      router.push("/VideoConference");
     } catch (error) {
       console.error("Error during hangup:", error);
-      // Still attempt navigation even if cleanup fails
       setCalling(false);
       router.push("/VideoConference");
     }
   };
+  
 
   const stressValues = {
     angry: 1.0,
