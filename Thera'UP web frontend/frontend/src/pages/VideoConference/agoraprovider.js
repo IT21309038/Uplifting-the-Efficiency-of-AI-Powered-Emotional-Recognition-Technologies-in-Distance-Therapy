@@ -510,12 +510,7 @@ export const AgoraProvider = ({
           fetchPlotAsBlob(String(user.uid), "stress"),
           fetchPlotAsBlob(String(user.uid), "emotion"),
         ]);
-        console.log("📷 Stress Plot Blob:", stressBlob?.type, stressBlob?.size);
-        console.log(
-          "📷 Emotion Plot Blob:",
-          emotionBlob?.type,
-          emotionBlob?.size
-        );
+        
         setStressPlotBlob(stressBlob);
         setEmotionPlotBlob(emotionBlob);
         console.log("✅ Final plots fetched and stored in state.");
