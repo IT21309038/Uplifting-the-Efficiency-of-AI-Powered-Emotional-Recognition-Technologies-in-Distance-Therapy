@@ -55,10 +55,16 @@ const Sessions = () => {
       });
   }, [tableRefresh, doctorId, currentMonthDate]);
 
-  const openAgoraConference = (session_id) => {
+  const openAgoraConference = (
+    session_id,
+    patient_id,
+    doctor_id,
+    session_date,
+    session_time
+  ) => {
     route.push({
       pathname: "/VideoConference/agorabuild",
-      query: { session_id },
+      query: { session_id, patient_id, doctor_id, session_date, session_time },
     });
   };
 
@@ -211,7 +217,13 @@ const Sessions = () => {
               disabled={!isButtonEnabled}
               onClick={() => {
                 if (isButtonEnabled) {
-                  openAgoraConference(params.row.session_id);
+                  openAgoraConference(
+                    params.row.session_id,
+                    params.row.patient?.id,
+                    params.row.doctor?.id,
+                    params.row.date,
+                    params.row.time
+                  );
                 }
               }}
             >

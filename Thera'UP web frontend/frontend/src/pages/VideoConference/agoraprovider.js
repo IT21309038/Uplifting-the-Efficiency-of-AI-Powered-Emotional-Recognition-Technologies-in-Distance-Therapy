@@ -48,9 +48,19 @@ const loadModels = async () => {
   console.log("✅ FaceAPI models loaded");
 };
 
-export const AgoraProvider = ({ session_id }) => {
+export const AgoraProvider = ({
+  session_id,
+  patient_id,
+  doctor_id,
+  session_date,
+  session_time,
+}) => {
   const router = useRouter();
   const sessionID = session_id;
+  const patientID = patient_id;
+  const doctorID = doctor_id;
+  const sessionDate = session_date;
+  const sessionTime = session_time;
   const [calling, setCalling] = useState(false);
   const isConnected = useIsConnected();
   const [appId, setAppId] = useState("b62636e82bae4d77a10929859b2d798f");
@@ -501,7 +511,11 @@ export const AgoraProvider = ({ session_id }) => {
           fetchPlotAsBlob(String(user.uid), "emotion"),
         ]);
         console.log("📷 Stress Plot Blob:", stressBlob?.type, stressBlob?.size);
-        console.log("📷 Emotion Plot Blob:", emotionBlob?.type, emotionBlob?.size);
+        console.log(
+          "📷 Emotion Plot Blob:",
+          emotionBlob?.type,
+          emotionBlob?.size
+        );
         setStressPlotBlob(stressBlob);
         setEmotionPlotBlob(emotionBlob);
         console.log("✅ Final plots fetched and stored in state.");
@@ -1004,24 +1018,6 @@ export const AgoraProvider = ({ session_id }) => {
           <Grid2 size={6} sx={{ height: "400px", pb: 5 }}>
             <Line data={audioEmotionData} options={audioEmotionOptions} />
           </Grid2>
-          {stressPlotBlob && (
-            <Grid2 size={6} sx={{ height: "10px", pb: 5 }}>
-              <img
-                src={URL.createObjectURL(stressPlotBlob)}
-                alt="Stress Plot"
-                style={{ width: "100%", height: "auto" }}
-              />
-            </Grid2>
-          )}
-          {emotionPlotBlob && (
-            <Grid2 size={6} sx={{ height: "10px", pb: 5 }}>
-              <img
-                src={URL.createObjectURL(emotionPlotBlob)}
-                alt="Emotion Plot"
-                style={{ width: "100%", height: "auto" }}
-              />
-            </Grid2>
-          )}
           <Grid2 size={6} sx={{ height: "10px", pb: 5 }}></Grid2>
           <Grid2 size={6} sx={{ height: "10px", pb: 5 }}></Grid2>
         </Grid2>
