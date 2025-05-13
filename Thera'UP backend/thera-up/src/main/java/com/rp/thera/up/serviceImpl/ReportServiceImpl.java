@@ -24,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class ReportServiceImpl implements ReportService {
@@ -80,8 +81,11 @@ public class ReportServiceImpl implements ReportService {
                 new ReportException("Doctor not found", HttpStatus.NOT_FOUND));
 
         String fileExtension = getFileExtension(file);
+
+        //Create a random hash value for the file name
+        String hash = UUID.randomUUID().toString();
         String fileUrl = storageService.uploadResource(REPORT_FOLDER,
-                doctor.getFull_name() + "_" + patient.getFull_name() + fileExtension, file);
+                doctor.getFull_name() + "_" + hash + fileExtension, file);
 
         //Create a new report entity
         Reports report = new Reports();

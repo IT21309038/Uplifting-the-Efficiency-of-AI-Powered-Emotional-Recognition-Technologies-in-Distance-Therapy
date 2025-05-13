@@ -36,6 +36,11 @@ const apiDefinitions = {
       `postTherapy/deleteActivity/${patientId}/${activityId}`
     );
   },
+
+  /********************Report Api Start************************** */
+  crearteReport: async function (payload) {
+    return await api.post(`reports/create`, payload);
+  },
 };
 
 export default apiDefinitions;

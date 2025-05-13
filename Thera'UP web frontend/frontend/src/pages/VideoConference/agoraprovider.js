@@ -30,6 +30,7 @@ import Grid from "@mui/material/Grid";
 import { Grid2 } from "@mui/material";
 
 import { playRemoteAudioTrack } from "../../utils/agoraUtils";
+import apiDefinitions from "@/api/apiDefinitions";
 
 ChartJS.register(
   CategoryScale,
@@ -48,9 +49,19 @@ const loadModels = async () => {
   console.log("✅ FaceAPI models loaded");
 };
 
-export const AgoraProvider = ({ session_id }) => {
+export const AgoraProvider = ({
+  session_id,
+  patient_id,
+  doctor_id,
+  session_date,
+  session_time,
+}) => {
   const router = useRouter();
   const sessionID = session_id;
+  const patientID = patient_id;
+  const doctorID = doctor_id;
+  const sessionDate = session_date;
+  const sessionTime = session_time;
   const [calling, setCalling] = useState(false);
   const isConnected = useIsConnected();
   const [appId, setAppId] = useState("b62636e82bae4d77a10929859b2d798f");
@@ -92,6 +103,75 @@ export const AgoraProvider = ({ session_id }) => {
   const [audioEmotionHistory, setAudioEmotionHistory] = useState([]);
 
   const [audioClips, setAudioClips] = useState([]); // Store audio clips and responses
+
+  //Report generation ref
+  const reportGeneratedForUser = useRef(new Set());
+
+  const fetchPlotAsBlob = async (uid, type) => {
+    const response = await fetch(
+      `http://localhost:8000/final_${type}_plot/${uid}`
+    );
+    if (!response.ok) throw new Error(`Failed to fetch ${type} plot`);
+    return await response.blob(); // Returns image/png blob
+  };
+
+  //Report generation payload
+  const payload = {
+    patient_id: patientID,
+    doctor_id: doctorID,
+    session_date: sessionDate,
+    session_time: sessionTime,
+  };
+
+  //Report generation
+  const formDataFaceEmotion = new FormData();
+  const formDataFaceStress = new FormData();
+  const formDataAudioEmotion = new FormData();
+  const formDataAudioStress = new FormData();
+
+  const handleCreateFaceEmotionReport = (blob) => {
+    formDataFaceEmotion.append(
+      "report",
+      new Blob([JSON.stringify(payload)], { type: "application/json" })
+    );
+
+    formDataFaceEmotion.append("file", blob);
+
+    apiDefinitions
+      .crearteReport(formDataFaceEmotion)
+      .then((response) => {
+        if (response.status === 201) {
+          console.log("Face Emotion report created successfully");
+        } else {
+          console.error("Failed to create Face Emotion report");
+        }
+      })
+      .catch((error) => {
+        console.error("Error creating Face Emotion report:", error);
+      });
+  };
+
+  const handleCreateFaceStressReport = (blob) => {
+    formDataFaceStress.append(
+      "report",
+      new Blob([JSON.stringify(payload)], { type: "application/json" })
+    );
+
+    formDataFaceStress.append("file", blob);
+
+    apiDefinitions
+      .crearteReport(formDataFaceStress)
+      .then((response) => {
+        if (response.status === 201) {
+          console.log("Face Stress report created successfully");
+        } else {
+          console.error("Failed to create Face Stress report");
+        }
+      })
+      .catch((error) => {
+        console.error("Error creating Face Stress report:", error);
+      });
+  };
 
   //WebRTC connection management
   const setupWebRTCConnection = async () => {
@@ -470,7 +550,7 @@ export const AgoraProvider = ({ session_id }) => {
       }
     };
 
-    const handleUserUnpublished = (user, mediaType) => {
+    const handleUserUnpublished = async (user, mediaType) => {
       if (mediaType === "video") {
         if (frameIntervals.current[user.uid]) {
           clearInterval(frameIntervals.current[user.uid]);
@@ -480,6 +560,34 @@ export const AgoraProvider = ({ session_id }) => {
       }
       if (mediaType === "audio") {
         cleanupRemoteAudio(user.uid);
+      }
+      // ✅ Prevent duplicate report generation
+      if (reportGeneratedForUser.current.has(user.uid)) {
+        console.log(
+          `⛔ Reports already generated for user ${user.uid}, skipping.`
+        );
+        return;
+      }
+
+      // ✅ Only proceed for 'video' mediaType to reduce trigger risk
+      if (mediaType !== "video") return;
+      try {
+        console.log(
+          `📤 Remote user ${user.uid} left — fetching final plots...`
+        );
+        const [stressBlob, emotionBlob] = await Promise.all([
+          fetchPlotAsBlob(String(user.uid), "stress"),
+          fetchPlotAsBlob(String(user.uid), "emotion"),
+        ]);
+
+        console.log("📤 Generating reports...");
+        handleCreateFaceEmotionReport(emotionBlob);
+        handleCreateFaceStressReport(stressBlob);
+
+        reportGeneratedForUser.current.add(user.uid);
+        console.log(`✅ Reports created for user ${user.uid}`);
+      } catch (err) {
+        console.error("❌ Failed to fetch plots:", err);
       }
     };
 
@@ -509,29 +617,29 @@ export const AgoraProvider = ({ session_id }) => {
         localCameraTrack.stop();
         localCameraTrack.close();
       }
-  
+
       // Stop and unsubscribe remote users if still connected
       if (agoraClient.connection?.state === "CONNECTED") {
         remoteUsers.forEach((user) => {
           if (user.audioTrack) user.audioTrack.stop();
           if (user.videoTrack) user.videoTrack.stop();
-  
+
           try {
             agoraClient.unsubscribe(user);
           } catch (err) {
             console.warn(`⚠️ Unsubscribe failed for ${user.uid}:`, err.message);
           }
         });
-  
+
         await agoraClient.leave(); // only after unsubscribing
       }
-  
+
       // Clear intervals
       Object.keys(frameIntervals.current).forEach((userId) => {
         clearInterval(frameIntervals.current[userId]);
         delete frameIntervals.current[userId];
       });
-  
+
       setCalling(false);
       router.push("/VideoConference");
     } catch (error) {
@@ -540,7 +648,6 @@ export const AgoraProvider = ({ session_id }) => {
       router.push("/VideoConference");
     }
   };
-  
 
   const stressValues = {
     angry: 1.0,
