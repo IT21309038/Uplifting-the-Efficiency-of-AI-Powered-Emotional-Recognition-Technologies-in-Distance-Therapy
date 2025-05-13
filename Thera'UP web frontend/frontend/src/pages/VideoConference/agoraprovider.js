@@ -72,9 +72,6 @@ export const AgoraProvider = ({
   const [stressHistory, setStressHistory] = useState([]);
   const [emotionHistory, setEmotionHistory] = useState([]);
 
-  const [stressPlotBlob, setStressPlotBlob] = useState(null);
-  const [emotionPlotBlob, setEmotionPlotBlob] = useState(null);
-
   const agoraClient = useRTCClient();
   useJoin(
     { appid: appId, channel: channel, token: token ? token : null },
@@ -107,6 +104,9 @@ export const AgoraProvider = ({
 
   const [audioClips, setAudioClips] = useState([]); // Store audio clips and responses
 
+  //Report generation ref
+  const reportGeneratedForUser = useRef(new Set());
+
   const fetchPlotAsBlob = async (uid, type) => {
     const response = await fetch(
       `http://localhost:8000/final_${type}_plot/${uid}`
@@ -129,13 +129,13 @@ export const AgoraProvider = ({
   const formDataAudioEmotion = new FormData();
   const formDataAudioStress = new FormData();
 
-  const handleCreateFaceEmotionReport = () => {
+  const handleCreateFaceEmotionReport = (blob) => {
     formDataFaceEmotion.append(
       "report",
       new Blob([JSON.stringify(payload)], { type: "application/json" })
     );
 
-    formDataFaceEmotion.append("file", emotionPlotBlob);
+    formDataFaceEmotion.append("file", blob);
 
     apiDefinitions
       .crearteReport(formDataFaceEmotion)
@@ -151,13 +151,13 @@ export const AgoraProvider = ({
       });
   };
 
-  const handleCreateFaceStressReport = () => {
+  const handleCreateFaceStressReport = (blob) => {
     formDataFaceStress.append(
       "report",
       new Blob([JSON.stringify(payload)], { type: "application/json" })
     );
 
-    formDataFaceStress.append("file", stressPlotBlob);
+    formDataFaceStress.append("file", blob);
 
     apiDefinitions
       .crearteReport(formDataFaceStress)
@@ -561,6 +561,16 @@ export const AgoraProvider = ({
       if (mediaType === "audio") {
         cleanupRemoteAudio(user.uid);
       }
+      // ✅ Prevent duplicate report generation
+      if (reportGeneratedForUser.current.has(user.uid)) {
+        console.log(
+          `⛔ Reports already generated for user ${user.uid}, skipping.`
+        );
+        return;
+      }
+
+      // ✅ Only proceed for 'video' mediaType to reduce trigger risk
+      if (mediaType !== "video") return;
       try {
         console.log(
           `📤 Remote user ${user.uid} left — fetching final plots...`
@@ -570,15 +580,12 @@ export const AgoraProvider = ({
           fetchPlotAsBlob(String(user.uid), "emotion"),
         ]);
 
-        setStressPlotBlob(stressBlob);
-        setEmotionPlotBlob(emotionBlob);
-
-        console.log("✅ Final plots fetched and stored in state.");
-
         console.log("📤 Generating reports...");
-        handleCreateFaceEmotionReport();
-        handleCreateFaceStressReport();
-        console.log("✅ Reports generated successfully.");
+        handleCreateFaceEmotionReport(emotionBlob);
+        handleCreateFaceStressReport(stressBlob);
+
+        reportGeneratedForUser.current.add(user.uid);
+        console.log(`✅ Reports created for user ${user.uid}`);
       } catch (err) {
         console.error("❌ Failed to fetch plots:", err);
       }
