@@ -21,7 +21,7 @@ public class ReportController {
     private ReportService reportService;
 
     @PostMapping(path = "reports/create", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
-    public ResponseEntity<?> createReport(@RequestParam("file") MultipartFile file,
+    public ResponseEntity<?> createReport(@RequestPart("file") MultipartFile file,
                                           @RequestPart("report")CreateReportDTO reportDTO) {
         reportService.createReport(file, reportDTO);
         return ResponseHandler.responseBuilder("Report created successfully", HttpStatus.CREATED, null);

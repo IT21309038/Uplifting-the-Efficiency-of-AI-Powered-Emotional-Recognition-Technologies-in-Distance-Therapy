@@ -30,6 +30,7 @@ import Grid from "@mui/material/Grid";
 import { Grid2 } from "@mui/material";
 
 import { playRemoteAudioTrack } from "../../utils/agoraUtils";
+import apiDefinitions from "@/api/apiDefinitions";
 
 ChartJS.register(
   CategoryScale,
@@ -112,6 +113,64 @@ export const AgoraProvider = ({
     );
     if (!response.ok) throw new Error(`Failed to fetch ${type} plot`);
     return await response.blob(); // Returns image/png blob
+  };
+
+  //Report generation payload
+  const payload = {
+    patient_id: patientID,
+    doctor_id: doctorID,
+    session_date: sessionDate,
+    session_time: sessionTime,
+  };
+
+  //Report generation
+  const formDataFaceEmotion = new FormData();
+  const formDataFaceStress = new FormData();
+  const formDataAudioEmotion = new FormData();
+  const formDataAudioStress = new FormData();
+
+  const handleCreateFaceEmotionReport = () => {
+    formDataFaceEmotion.append(
+      "report",
+      new Blob([JSON.stringify(payload)], { type: "application/json" })
+    );
+
+    formDataFaceEmotion.append("file", emotionPlotBlob);
+
+    apiDefinitions
+      .crearteReport(formDataFaceEmotion)
+      .then((response) => {
+        if (response.status === 201) {
+          console.log("Face Emotion report created successfully");
+        } else {
+          console.error("Failed to create Face Emotion report");
+        }
+      })
+      .catch((error) => {
+        console.error("Error creating Face Emotion report:", error);
+      });
+  };
+
+  const handleCreateFaceStressReport = () => {
+    formDataFaceStress.append(
+      "report",
+      new Blob([JSON.stringify(payload)], { type: "application/json" })
+    );
+
+    formDataFaceStress.append("file", stressPlotBlob);
+
+    apiDefinitions
+      .crearteReport(formDataFaceStress)
+      .then((response) => {
+        if (response.status === 201) {
+          console.log("Face Stress report created successfully");
+        } else {
+          console.error("Failed to create Face Stress report");
+        }
+      })
+      .catch((error) => {
+        console.error("Error creating Face Stress report:", error);
+      });
   };
 
   //WebRTC connection management
@@ -510,10 +569,16 @@ export const AgoraProvider = ({
           fetchPlotAsBlob(String(user.uid), "stress"),
           fetchPlotAsBlob(String(user.uid), "emotion"),
         ]);
-        
+
         setStressPlotBlob(stressBlob);
         setEmotionPlotBlob(emotionBlob);
+
         console.log("✅ Final plots fetched and stored in state.");
+
+        console.log("📤 Generating reports...");
+        handleCreateFaceEmotionReport();
+        handleCreateFaceStressReport();
+        console.log("✅ Reports generated successfully.");
       } catch (err) {
         console.error("❌ Failed to fetch plots:", err);
       }
