@@ -580,6 +580,8 @@ export const AgoraProvider = ({
           fetchPlotAsBlob(String(user.uid), "emotion"),
         ]);
 
+
+
         console.log("📤 Generating reports...");
         handleCreateFaceEmotionReport(emotionBlob);
         handleCreateFaceStressReport(stressBlob);
