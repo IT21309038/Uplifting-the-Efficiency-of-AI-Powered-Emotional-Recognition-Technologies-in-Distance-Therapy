@@ -1,307 +1,190 @@
-import React from "react";
-import * as d3 from "d3";
-import {
-  Box,
-  Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableRow,
-  Paper,
-  Grid,
-  Card,
-  CardContent,
-  CardHeader,
-} from "@mui/material";
-import { styled } from "@mui/system";
+import { Box, Card, CardContent, Grid2, Typography } from "@mui/material";
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import { DataGrid } from "@mui/x-data-grid";
+import { toast } from "react-toastify";
+import { Image } from "antd";
+import apiDefinitions from "@/api/apiDefinitions";
 
-const StressReport = () => {
-  const reactionTimeData = [
-    { interval: "0-5s", reactionTime: 300, stressLevel: 85 },
-    { interval: "5-10s", reactionTime: 280, stressLevel: 80 },
-    { interval: "10-15s", reactionTime: 320, stressLevel: 88 },
-    { interval: "15-20s", reactionTime: 290, stressLevel: 75 },
-    { interval: "20-25s", reactionTime: 310, stressLevel: 78 },
+const Reports = () => {
+  const route = useRouter();
+  const { data: session } = useSession();
+
+  const [rows, setRows] = useState([]);
+  const [paginationModel, setPaginationModel] = useState({
+    page: 0,
+    pageSize: 5,
+  });
+  const [recordCount, setRecordCount] = useState(0);
+  const [tableRefresh, setTableRefresh] = useState(false);
+  const doctorId = session?.user?.id;
+
+  useEffect(() => {
+    apiDefinitions
+      .getReports(paginationModel.page, paginationModel.pageSize, 0, doctorId)
+      .then((res) => {
+        if (res.data.statusCode === 200) {
+          setRows(res.data?.data?.data);
+          setRecordCount(res.data?.data?.totalCount);
+          toast.success("Data fetched successfully", res.data.message);
+        } else {
+          throw new Error(res.data.message || "Failed to fetch data");
+        }
+      })
+      .catch((err) => {
+        toast.error(err.response?.data?.message || err.message, {
+          toastId: "DoctorError",
+        });
+        setRows([]);
+        setRecordCount(0);
+      });
+  }, [tableRefresh, doctorId, paginationModel]);
+
+  const columns = [
+    {
+      field: "report",
+      headerName: "Report",
+      minWidth: 120,
+      align: "center",
+      headerAlign: "center",
+      flex: 0.5,
+      renderCell: (params) => {
+        return (
+          <Image
+            src={params?.row?.report_url}
+            alt="Report"
+            width={100}
+            height={60}
+            style={{ borderRadius: "10px" }}
+          />
+        );
+      },
+    },
+    {
+      field: "doctor_name",
+      headerName: "Doctor Name",
+      minWidth: 120,
+      align: "center",
+      headerAlign: "center",
+      flex: 0.5,
+      renderCell: (params) => {
+        return (
+          <Typography variant="caption" color="primary" fontWeight={900}>
+            {params?.row?.doctor?.full_name || "N/A"}
+          </Typography>
+        );
+      },
+    },
+    {
+      field: "patient_name",
+      headerName: "Patient Name",
+      minWidth: 120,
+      align: "center",
+      headerAlign: "center",
+      flex: 0.5,
+      renderCell: (params) => {
+        return (
+          <Typography variant="caption" color="primary" fontWeight={900}>
+            {params?.row?.patient?.full_name || "N/A"}
+          </Typography>
+        );
+      },
+    },
+    {
+      field: "session_date",
+      headerName: "Session Date",
+      minWidth: 120,
+      align: "center",
+      headerAlign: "center",
+      flex: 0.5,
+      renderCell: (params) => {
+        return (
+          <Typography variant="caption" color="primary" fontWeight={900}>
+            {params?.row?.session_date || "N/A"}
+          </Typography>
+        );
+      },
+    },
+    {
+      field: "session_time",
+      headerName: "Session Time",
+      minWidth: 120,
+      align: "center",
+      headerAlign: "center",
+      flex: 0.5,
+      renderCell: (params) => {
+        return (
+          <Typography variant="caption" color="primary" fontWeight={900}>
+            {params?.row?.session_time || "N/A"}
+          </Typography>
+        );
+      },
+    },
   ];
 
-  React.useEffect(() => {
-    drawReactionTimeGraph();
-    drawStressTrendGraph();
-  }, []);
-
-  const drawReactionTimeGraph = () => {
-    const width = 500;
-    const height = 300;
-    const margin = { top: 20, right: 30, bottom: 40, left: 50 };
-
-    // Clear the previous graph if it exists
-    d3.select("#reactionTimeGraph").select("svg").remove();
-
-    const svg = d3
-      .select("#reactionTimeGraph")
-      .append("svg")
-      .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom)
-      .append("g")
-      .attr("transform", `translate(${margin.left},${margin.top})`);
-
-    const x = d3
-      .scalePoint()
-      .domain(reactionTimeData.map((d) => d.interval))
-      .range([0, width])
-      .padding(0.5);
-
-    const y = d3
-      .scaleLinear()
-      .domain([0, d3.max(reactionTimeData, (d) => d.reactionTime)])
-      .nice()
-      .range([height, 0]);
-
-    svg
-      .append("g")
-      .attr("transform", `translate(0,${height})`)
-      .call(d3.axisBottom(x));
-
-    svg.append("g").call(d3.axisLeft(y));
-
-    const line = d3
-      .line()
-      .x((d) => x(d.interval))
-      .y((d) => y(d.reactionTime))
-      .curve(d3.curveMonotoneX);
-
-    svg
-      .append("path")
-      .datum(reactionTimeData)
-      .attr("fill", "none")
-      .attr("stroke", "#3f51b5")
-      .attr("stroke-width", 3)
-      .attr("d", line);
-
-    svg
-      .selectAll(".dot")
-      .data(reactionTimeData)
-      .enter()
-      .append("circle")
-      .attr("class", "dot")
-      .attr("cx", (d) => x(d.interval))
-      .attr("cy", (d) => y(d.reactionTime))
-      .attr("r", 6)
-      .attr("fill", "#3f51b5")
-      .attr("stroke", "#fff")
-      .attr("stroke-width", 2);
-  };
-
-  const drawStressTrendGraph = () => {
-    const width = 500;
-    const height = 300;
-    const margin = { top: 20, right: 30, bottom: 40, left: 50 };
-
-    // Clear the previous graph if it exists
-    d3.select("#stressTrendGraph").select("svg").remove();
-
-    const svg = d3
-      .select("#stressTrendGraph")
-      .append("svg")
-      .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom)
-      .append("g")
-      .attr("transform", `translate(${margin.left},${margin.top})`);
-
-    const x = d3
-      .scaleBand()
-      .domain(reactionTimeData.map((d) => d.interval))
-      .range([0, width])
-      .padding(0.3);
-
-    const y = d3.scaleLinear().domain([0, 100]).nice().range([height, 0]);
-
-    svg
-      .append("g")
-      .attr("transform", `translate(0,${height})`)
-      .call(d3.axisBottom(x));
-
-    svg.append("g").call(d3.axisLeft(y));
-
-    svg
-      .selectAll(".bar")
-      .data(reactionTimeData)
-      .enter()
-      .append("rect")
-      .attr("class", "bar")
-      .attr("x", (d) => x(d.interval))
-      .attr("y", (d) => y(d.stressLevel))
-      .attr("width", x.bandwidth())
-      .attr("height", (d) => height - y(d.stressLevel))
-      .attr("fill", "#ff5722")
-      .attr("opacity", 0.8);
-  };
-
-  const averageReactionTime =
-    reactionTimeData.reduce((acc, cur) => acc + cur.reactionTime, 0) /
-    reactionTimeData.length;
-
   return (
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <Card>
-          <CardContent>
+    <>
+      <Grid2 container spacing={2}>
+        <Grid2 item size={12}>
+          <Card>
+            <CardContent>
+              <Grid2 container spacing={2}>
+                <Grid2 item size={6}>
+                  <Typography variant="h5" fontWeight={600}>
+                    Welcome Dr. {session?.user?.full_name || "N/A"}
+                  </Typography>
+                </Grid2>
+                <Grid2 item size={6}>
+                  <Typography variant="h5" fontWeight={600}>
+                    You may access reports of your patients here.
+                  </Typography>
+                </Grid2>
+              </Grid2>
+            </CardContent>
+          </Card>
+        </Grid2>
+
+        <Grid2 item size={12}>
+          <Card sx={{ boxShadow: 2 }}>
             <Box
               sx={{
-                padding: "30px",
-                fontFamily: "Roboto, sans-serif",
-                backgroundColor: "#f4f6f9",
+                height: "100%",
+                width: "100%",
+                "& .actions": {
+                  color: "text.secondary",
+                },
+                "& .textPrimary": {
+                  color: "text.primary",
+                },
               }}
             >
-              <Typography
-                variant="h4"
-                gutterBottom
+              <DataGrid
+                getRowId={(row) => row.id}
+                getRowHeight={() => "auto"}
+                autoHeight={true}
+                rows={rows}
+                rowCount={recordCount}
+                columns={columns}
+                pageSizeOptions={[3, 5, 10, 25, 50, 100]}
+                paginationMode="server"
+                paginationModel={paginationModel}
+                onPaginationModelChange={setPaginationModel}
+                disableRowSelectionOnClick
+                disableColumnSorting
+                disableColumnFilter
                 sx={{
-                  textAlign: "center",
-                  color: "#3f51b5",
-                  fontWeight: "bold",
+                  "& .MuiDataGrid-row:hover": {
+                    cursor: "pointer",
+                  },
                 }}
-              >
-                Initial Diagnostic Report
-              </Typography>
-
-              <Grid container spacing={3}>
-                <Grid item xs={12}>
-                  <Card sx={{ borderRadius: 2, boxShadow: 3 }}>
-                    <CardHeader
-                      title="Patient Information"
-                      sx={{ backgroundColor: "#3f51b5", color: "#fff" }}
-                    />
-                    <CardContent>
-                      <Grid container spacing={2}>
-                        <Grid item xs={6}>
-                          <TableContainer component={Paper}>
-                            <Table>
-                              <TableBody>
-                                <TableRow>
-                                  <TableCell sx={{ fontWeight: "bold" }}>
-                                    Patient Name
-                                  </TableCell>
-                                  <TableCell>K R Sapukotana</TableCell>
-                                </TableRow>
-                                <TableRow>
-                                  <TableCell sx={{ fontWeight: "bold" }}>
-                                    Date of Birth
-                                  </TableCell>
-                                  <TableCell>2000/12/27</TableCell>
-                                </TableRow>
-                                <TableRow>
-                                  <TableCell sx={{ fontWeight: "bold" }}>
-                                    Gender
-                                  </TableCell>
-                                  <TableCell>Male</TableCell>
-                                </TableRow>
-                                <TableRow>
-                                  <TableCell sx={{ fontWeight: "bold" }}>
-                                    Patient ID
-                                  </TableCell>
-                                  <TableCell>RS-123456</TableCell>
-                                </TableRow>
-                              </TableBody>
-                            </Table>
-                          </TableContainer>
-                        </Grid>
-
-                        <Grid item xs={6}>
-                          <TableContainer component={Paper}>
-                            <Table>
-                              <TableBody>
-                                <TableRow>
-                                  <TableCell sx={{ fontWeight: "bold" }}>
-                                    Status
-                                  </TableCell>
-                                  <TableCell>Unemployed</TableCell>
-                                </TableRow>
-                                <TableRow>
-                                  <TableCell sx={{ fontWeight: "bold" }}>
-                                    Civil Status
-                                  </TableCell>
-                                  <TableCell>Divorced</TableCell>
-                                </TableRow>
-                                <TableRow>
-                                  <TableCell sx={{ fontWeight: "bold" }}>
-                                    Living Situation
-                                  </TableCell>
-                                  <TableCell>Homeless</TableCell>
-                                </TableRow>
-                                <TableRow>
-                                  <TableCell sx={{ fontWeight: "bold" }}>
-                                    Income Status
-                                  </TableCell>
-                                  <TableCell>In Debt</TableCell>
-                                </TableRow>
-                              </TableBody>
-                            </Table>
-                          </TableContainer>
-                        </Grid>
-                      </Grid>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
-
-              {/* Graphs Section */}
-              <Grid container spacing={3} mt={4}>
-                <Grid item xs={6}>
-                  <Typography
-                    variant="h6"
-                    gutterBottom
-                    sx={{ fontWeight: "bold", color: "#3f51b5" }}
-                  >
-                    Reaction Time Graph (5-Second Intervals)
-                  </Typography>
-                  <Box id="reactionTimeGraph" />
-                </Grid>
-
-                <Grid item xs={6}>
-                  <Typography
-                    variant="h6"
-                    gutterBottom
-                    sx={{ fontWeight: "bold", color: "#ff5722" }}
-                  >
-                    Stress Level Trends
-                  </Typography>
-                  <Box id="stressTrendGraph" />
-                </Grid>
-              </Grid>
-
-              <Grid item xs={12}>
-                <Card sx={{ borderRadius: 2, boxShadow: 3 }}>
-                  <CardHeader
-                    title="Summary"
-                    sx={{ backgroundColor: "#4caf50", color: "#fff" }}
-                  />
-                  <CardContent>
-                    <Typography sx={{ fontWeight: "bold" }}>
-                      <b>Initial Stress Diagnostic:</b> Highly Stressed
-                    </Typography>
-                    <Typography sx={{ fontWeight: "bold" }}>
-                      <b>Average Reaction Time:</b>{" "}
-                      {averageReactionTime.toFixed(2)} ms
-                    </Typography>
-                    <Typography sx={{ fontWeight: "bold" }}>
-                      <b>Maximum Stress Level:</b>{" "}
-                      {Math.max(...reactionTimeData.map((d) => d.stressLevel))}%
-                    </Typography>
-                    <Typography sx={{ fontWeight: "bold" }}>
-                      <b>Minimum Stress Level:</b>{" "}
-                      {Math.min(...reactionTimeData.map((d) => d.stressLevel))}%
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
+              />
             </Box>
-          </CardContent>
-        </Card>
-      </Grid>
-    </Grid>
+          </Card>
+        </Grid2>
+      </Grid2>
+    </>
   );
 };
 
-export default StressReport;
+export default Reports;
