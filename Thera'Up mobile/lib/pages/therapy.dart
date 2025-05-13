@@ -1,38 +1,69 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:thera_up/models/pastT_model.dart';
-import 'package:thera_up/models/upCommingT_model.dart';
+import 'package:thera_up/models/PastTModel.dart';
+import 'package:thera_up/models/UpCommingTModel.dart';
 import 'package:thera_up/pages/schedule.dart';
 import 'package:intl/intl.dart';
 import 'package:thera_up/pages/video_conference.dart';
 import 'package:thera_up/pages/NewPage.dart';
-
+import 'package:thera_up/services/SessionService.dart';
+import 'package:thera_up/services/TherapyApiService.dart';
+import 'package:http/http.dart' as http;
+import 'dart:async';
 
 class Therapy extends StatefulWidget {
-   Therapy({Key? key}) : super(key: key);
+  Therapy({Key? key}) : super(key: key);
 
   @override
   _TherapyState createState() => _TherapyState();
 }
 
 class _TherapyState extends State<Therapy> {
-
   List<UpCommingTModel> upComingTherapies = [];
   List<PastTModel> pastTherapies = [];
+  bool _isLoading = false;
+
+  final TherapyApiService _therapyApiService = TherapyApiService();
+
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    _getUpcomingTherapies();
-    _getPastTherapies();
+    _fetchTherapies();
+    // Start a timer to refresh UI every minute
+    _timer = Timer.periodic(Duration(seconds: 30), (timer) {
+      setState(() {
+        // This will rebuild the widget and recheck _isSessionStartingSoon()
+      });
+    });
   }
 
-  void _getUpcomingTherapies() {
-    upComingTherapies = UpCommingTModel.getUpCommingT();
+  Future<void> _fetchTherapies() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final userId = await SessionService.getUserId();
+
+      upComingTherapies = await _therapyApiService.getUpcomingTherapies(
+          userId!); // Replace 1 with the actual patient ID
+      pastTherapies = await _therapyApiService
+          .getPastTherapies(userId); // Replace 1 with the actual patient ID
+    } catch (e) {
+      _showError(e.toString());
+    }
+
+    setState(() => _isLoading = false);
   }
 
-  void _getPastTherapies() {
-    pastTherapies = PastTModel.getPastT();
+  void _showError(String message) {
+    print("Error: $message");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: const TextStyle(color: Colors.white)),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   @override
@@ -40,19 +71,21 @@ class _TherapyState extends State<Therapy> {
     return Scaffold(
       appBar: appBar(),
       backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            _scheduleNow(),
-            const SizedBox(height: 30),
-            _upComing(),
-            const SizedBox(height: 30,),
-            _pastTherapies(),
-            const SizedBox(height: 30,),
-          ],
-        ),
-      ),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+                  _scheduleNow(),
+                  const SizedBox(height: 30),
+                  _upComing(),
+                  const SizedBox(height: 30),
+                  _pastTherapies(),
+                  const SizedBox(height: 30),
+                ],
+              ),
+            ),
     );
   }
 
@@ -76,45 +109,153 @@ class _TherapyState extends State<Therapy> {
   Column _scheduleNow() {
     return Column(
       children: [
-      GestureDetector(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const Schedule()),
-          );
-        },
-        child: Container(
-          height: 100,
-          margin: EdgeInsets.only(left: 20, right: 20),
-          decoration: BoxDecoration(
-            color: Color(0xff9DCEFF).withOpacity(0.5),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Padding(
-            padding: EdgeInsets.all(20.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Schedule a therapy now',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w500,
+        GestureDetector(
+          onTap: () async {
+            // Call the first API to check for upcoming therapies
+            final hasUpcomingTherapies = await _checkUpcomingTherapies();
+
+            if (hasUpcomingTherapies == null) {
+              // Handle API error
+              return;
+            }
+
+            if (!hasUpcomingTherapies) {
+              // If no upcoming therapies, navigate to the Schedule page
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const Schedule()),
+              );
+            } else {
+              // If there are upcoming therapies, show a popup
+              final shouldContinue = await _showConfirmationDialog();
+
+              if (shouldContinue == true) {
+                // Call the second API to delete pending sessions
+                final success = await _deletePendingSessions();
+
+                if (success) {
+                  // Navigate to the Schedule page after deleting sessions
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const Schedule()),
+                  );
+                }
+              }
+            }
+          },
+          child: Container(
+            height: 100,
+            margin: EdgeInsets.only(left: 20, right: 20),
+            decoration: BoxDecoration(
+              color: Color(0xff9DCEFF).withOpacity(0.5),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(20.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Schedule a therapy now',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-                Container(
-                  height: 50,
-                  width: 50,
-                  child: SvgPicture.asset('assets/icons/arrow-right.svg'),
-                ),
-              ],
+                  Container(
+                    height: 50,
+                    width: 50,
+                    child: SvgPicture.asset('assets/icons/arrow-right.svg'),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-      ),
       ],
     );
+  }
+
+  Future<bool?> _checkUpcomingTherapies() async {
+    try {
+      final userId = await SessionService.getUserId();
+
+      final response = await http.get(
+        Uri.parse(
+            'https://theraupbackend.pixelcore.lk/api/v1/theraup/schedule/check-schedules/$userId'),
+        // Replace 1 with the actual user ID
+        headers: {"Content-Type": "application/json"},
+      );
+
+      if (response.statusCode == 204) {
+        // No upcoming therapies
+        return false;
+      } else if (response.statusCode == 200) {
+        // Upcoming therapies exist
+        return true;
+      } else {
+        // Handle other status codes
+        _showError("Failed to check upcoming therapies");
+        return null;
+      }
+    } catch (e) {
+      _showError("Error: $e");
+      return null;
+    }
+  }
+
+  Future<bool?> _showConfirmationDialog() async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Upcoming Therapies"),
+          content: Text(
+            "You have upcoming therapies. If you continue, all pending sessions will be canceled, but your progress will be kept. Do you want to continue?",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false); // No
+              },
+              child: Text("No"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop(true); // Yes
+              },
+              child: Text("Yes"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<bool> _deletePendingSessions() async {
+    try {
+      final userId = await SessionService.getUserId();
+
+      final response = await http.delete(
+        Uri.parse(
+            'https://theraupbackend.pixelcore.lk/api/v1/theraup/schedule/delete-pending-sessions/$userId'),
+        // Replace 1 with the actual user ID
+        headers: {"Content-Type": "application/json"},
+      );
+
+      if (response.statusCode == 200) {
+        // Sessions deleted successfully
+        return true;
+      } else {
+        // Handle other status codes
+        _showError("Failed to delete pending sessions");
+        return false;
+      }
+    } catch (e) {
+      _showError("Error: $e");
+      return false;
+    }
   }
 
   Column _upComing() {
@@ -134,7 +275,7 @@ class _TherapyState extends State<Therapy> {
         ),
         SizedBox(height: 20),
         Container(
-          height: 290, // Set a fixed height
+          height: 320, // Set a fixed height
           child: ListView.separated(
             separatorBuilder: (context, index) {
               return SizedBox(width: 20);
@@ -142,7 +283,7 @@ class _TherapyState extends State<Therapy> {
             itemCount: upComingTherapies.length,
             itemBuilder: (context, index) {
               return Container(
-                width: 210,
+                width: 250,
                 decoration: BoxDecoration(
                   color: (index % 2 == 0)
                       ? Color(0xff9DCEFF).withOpacity(0.5)
@@ -154,6 +295,15 @@ class _TherapyState extends State<Therapy> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      SizedBox(height: 10),
+                      Text(
+                        "Session ID: ${upComingTherapies[index].sessionId}",
+                        style: TextStyle(
+                          color: Colors.black87,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
                       SizedBox(height: 10),
                       Text(
                         upComingTherapies[index].date,
@@ -186,7 +336,7 @@ class _TherapyState extends State<Therapy> {
                         children: [
                           SizedBox(width: 10),
                           Text(
-                            upComingTherapies[index].duration + '  |',
+                            '${upComingTherapies[index].duration}  |',
                             style: TextStyle(
                               color: Colors.grey,
                               fontSize: 16,
@@ -194,7 +344,7 @@ class _TherapyState extends State<Therapy> {
                             ),
                           ),
                           Text(
-                            (upComingTherapies[index].paid ?? false)
+                            upComingTherapies[index].paid
                                 ? '  Paid'
                                 : '  Pending',
                             style: TextStyle(
@@ -203,19 +353,23 @@ class _TherapyState extends State<Therapy> {
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          
                         ],
                       ),
                       SizedBox(height: 10),
                       Center(
                         child: ElevatedButton(
-                          onPressed: _isSessionStartingSoon(upComingTherapies[index].date ,upComingTherapies[index].time)
+                          onPressed: _isSessionStartingSoon(
+                            upComingTherapies[index].date,
+                            upComingTherapies[index].time,
+                            upComingTherapies[index].sessionDuration,
+                          )
                               ? () {
-                            _joinTherapySession( this.context ,upComingTherapies[index].time);
-                          }
-                              : null, // Disable button if session is not within 5 minutes,
+                                  _joinTherapySession(
+                                      context, upComingTherapies[index].sessionId);
+                                }
+                              : null,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blueAccent, // Button color
+                            backgroundColor: Colors.blueAccent,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -224,10 +378,8 @@ class _TherapyState extends State<Therapy> {
                             "Join",
                             style: TextStyle(color: Colors.white),
                           ),
-                      )
-                      )
-
-
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -241,37 +393,13 @@ class _TherapyState extends State<Therapy> {
     );
   }
 
-  // Column _newBlank(BuildContext context) {
-  //   return Column(
-  //     crossAxisAlignment: CrossAxisAlignment.start, // Aligns the button to the left
-  //     children: [
-  //       Align(
-  //         alignment: Alignment.centerLeft,
-  //         child: ElevatedButton(
-  //           onPressed: () {
-  //             Navigator.push(
-  //               context,
-  //               MaterialPageRoute(builder: (context) => MainScreen()), // Navigate to NewPage
-  //             );
-  //           },
-  //           style: ElevatedButton.styleFrom(
-  //             backgroundColor: Colors.blue, // Button color
-  //             foregroundColor: Colors.white, // Text color
-  //           ),
-  //           child: Text("New Page"),
-  //         ),
-  //       ),
-  //     ],
-  //   );
-  // }
-
-  Column _pastTherapies(){
+  Column _pastTherapies() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(padding: EdgeInsets.only(left: 20),
-          child:
-          Text(
+        Padding(
+          padding: EdgeInsets.only(left: 20),
+          child: Text(
             "Past Therapies",
             style: TextStyle(
               color: Colors.black,
@@ -332,24 +460,22 @@ class _TherapyState extends State<Therapy> {
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                            backgroundColor: pastTherapies[index]
-                                .status == 'Completed'
+                            backgroundColor: pastTherapies[index].status ==
+                                    'completed'
                                 ? Colors.green
-                                : pastTherapies[index].status ==
-                                'Not completed'
-                                ? Colors.red
-                                : pastTherapies[index].status == 'N/A'
-                                ? Colors.grey
-                                : pastTherapies[index].status ==
-                                'Ongoing'
-                                ? Colors.amber
-                                : Colors.blue,
+                                : pastTherapies[index].status == 'Not completed'
+                                    ? Colors.red
+                                    : pastTherapies[index].status == 'N/A'
+                                        ? Colors.grey
+                                        : pastTherapies[index].status ==
+                                                'Ongoing'
+                                            ? Colors.amber
+                                            : Colors.blue,
                             shape: StadiumBorder(
-                              side: BorderSide
-                                  .none, // Ensures no visible border
+                              side:
+                                  BorderSide.none, // Ensures no visible border
                             ),
                           ),
-
                         ],
                       ),
                       SizedBox(height: 10),
@@ -365,7 +491,7 @@ class _TherapyState extends State<Therapy> {
                       Row(
                         children: [
                           Text(
-                            pastTherapies[index].duration + '',
+                            '${pastTherapies[index].duration}',
                             style: TextStyle(
                               color: Colors.grey,
                               fontSize: 16,
@@ -375,17 +501,13 @@ class _TherapyState extends State<Therapy> {
                           const Spacer(),
                           Row(
                             children: [
-                              const Icon(
-                                  Icons.star, color: Colors.amber,
-                                  size: 18),
-                              // Star icon
+                              const Icon(Icons.star,
+                                  color: Colors.amber, size: 18),
                               const SizedBox(width: 4),
-                              // Space between star and text
                               Text(
                                 pastTherapies[index].rating.isEmpty
                                     ? 'Rate Therapy'
-                                    : pastTherapies[index].rating
-                                    .toString(), // Example rating value
+                                    : pastTherapies[index].rating,
                                 style: const TextStyle(
                                   color: Colors.grey,
                                   fontSize: 16,
@@ -406,7 +528,7 @@ class _TherapyState extends State<Therapy> {
             return SizedBox(height: 25);
           },
           itemCount: pastTherapies.length,
-        )
+        ),
       ],
     );
   }
@@ -491,54 +613,40 @@ class _TherapyState extends State<Therapy> {
   }
 }
 
-bool _isSessionStartingSoon(String sessionDate ,String sessionTime) {
-  // try {
-  //   // Convert sessionTime to DateTime format
-  //   DateTime now = DateTime.now();
-  //   DateTime sessionDateTime = DateFormat("hh:mm a").parse(sessionTime);
-  //
-  //   // Convert session time to today's date
-  //   DateTime todaySession = DateTime(
-  //       now.year, now.month, now.day,
-  //       sessionDateTime.hour, sessionDateTime.minute
-  //   );
-  //
-  //   // Check if the session starts within the next 5 minutes
-  //   return todaySession.difference(now).inMinutes <= 5 &&
-  //       todaySession.difference(now).inMinutes >= 0;
-  // } catch (e) {
-  //   print("Error parsing session time: $e");
-  //   return false;
-  // }
+bool _isSessionStartingSoon(
+    String sessionDate, String sessionTime, int sessionDuration) {
   try {
-    // Define the target date (12th July 2021)
-    DateTime targetDate = DateTime(2021, 7, 12);
+    // Parse session date (example "2025-04-14")
+    DateTime parsedDate = DateFormat("yyyy-MM-dd").parse(sessionDate);
 
-    // Parse the session date (format: "Monday, 12 July 2021")
-    DateTime parsedDate = DateFormat("EEEE, d MMMM yyyy").parse(sessionDate);
+    // Parse session time (example "10:35:00")
+    DateTime parsedTime = DateFormat("HH:mm:ss").parse(sessionTime);
 
-    // Parse the session time (format: "10:00 AM")
-    DateTime parsedTime = DateFormat("hh:mm a").parse(sessionTime);
-
-    // Convert session time to full DateTime
-    DateTime sessionDateTime = DateTime(
-        parsedDate.year, parsedDate.month, parsedDate.day,
-        parsedTime.hour, parsedTime.minute
+    // Combine date and time into one DateTime object
+    DateTime sessionStart = DateTime(
+      parsedDate.year,
+      parsedDate.month,
+      parsedDate.day,
+      parsedTime.hour,
+      parsedTime.minute,
+      parsedTime.second,
     );
 
-    DateTime now = DateTime.now(); // Get current time
+    // Calculate session end time
+    DateTime sessionEnd = sessionStart.add(Duration(minutes: sessionDuration));
 
-    // Check if the session is on 12th July 2021 AND the time has not passed
-    return parsedDate.year == targetDate.year &&
-        parsedDate.month == targetDate.month &&
-        parsedDate.day == targetDate.day ;
+    DateTime now = DateTime.now();
+
+    // Allow joining 10 minutes before sessionStart and while session ongoing
+    return now.isAfter(sessionStart.subtract(Duration(minutes: 10))) &&
+        now.isBefore(sessionEnd);
   } catch (e) {
-    print("Error parsing date/time: $e");
+    print("Error parsing date/time/duration: $e");
     return false;
   }
 }
 
-void _joinTherapySession(BuildContext context, String meetingUrl) {
+void _joinTherapySession(BuildContext context, String sessionId) {
   showDialog(
     context: context,
     builder: (BuildContext context) {
@@ -567,9 +675,8 @@ void _joinTherapySession(BuildContext context, String meetingUrl) {
             child: Text("Join Now"),
             onPressed: () {
               Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => MainScreen()));
-
-              // print("Joining session: $meetingUrl");
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => MainScreen(sessionId: sessionId)));
             },
           ),
         ],

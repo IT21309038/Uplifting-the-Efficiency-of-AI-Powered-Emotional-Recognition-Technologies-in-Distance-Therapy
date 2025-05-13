@@ -116,12 +116,12 @@ class _ScheduleState extends State<ScheduleSecond> {
               Align(
                 alignment: Alignment.centerRight,
                 child: GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => AppointmentSuggestions()),
-                    );
-                  },
+                  // onTap: () {
+                  //   Navigator.push(
+                  //     context,
+                  //     MaterialPageRoute(builder: (context) => AppointmentSuggestions()),
+                  //   );
+                  // },
                   // onTap: () {
                   //   if (selectedAppetite != null &&
                   //       selectedSleepHours != null &&

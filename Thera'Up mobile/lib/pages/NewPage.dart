@@ -11,8 +11,8 @@ void main() => runApp(const MyApp());
 const appId = "b62636e82bae4d77a10929859b2d798f";
 // Fill in the temporary token generated from Agora Console
 const token = "<-- Insert token -->";
-// Fill in the channel name you used to generate the token
-const channel = "TEST-001";
+
+late final String _channelId;
 
 // Main App Widget
 class MyApp extends StatelessWidget {
@@ -21,14 +21,16 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-      home: MainScreen(),
+      home: MainScreen(sessionId: "sessionId"),
     );
   }
 }
 
 // Video Call Screen Widget
 class MainScreen extends StatefulWidget {
-  const MainScreen({Key? key}) : super(key: key);
+  final String sessionId; // 👈 Add this
+
+  const MainScreen({Key? key, required this.sessionId}) : super(key: key);
 
   @override
   _MainScreenScreenState createState() => _MainScreenScreenState();
@@ -43,6 +45,7 @@ class _MainScreenScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+    _channelId = widget.sessionId; // 👈 Use the session ID
     _startVideoCalling();
   }
 
@@ -110,7 +113,7 @@ class _MainScreenScreenState extends State<MainScreen> {
   Future<void> _joinChannel() async {
     await _engine.joinChannel(
       token: "",
-      channelId: channel,
+      channelId: _channelId,
       options: const ChannelMediaOptions(
         autoSubscribeVideo: true,
         autoSubscribeAudio: true,
@@ -198,7 +201,7 @@ class _MainScreenScreenState extends State<MainScreen> {
         controller: VideoViewController.remote(
           rtcEngine: _engine,
           canvas: VideoCanvas(uid: _remoteUid),
-          connection: const RtcConnection(channelId: channel),
+          connection: RtcConnection(channelId: _channelId),
         ),
       );
     } else {

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:thera_up/pages/schedule_second.dart';
 import 'package:thera_up/pages/Question_list/q1Sleep.dart';
+import 'package:thera_up/services/GeneralInfoApiService.dart';
+import 'package:thera_up/services/SessionService.dart';
 
 class Schedule extends StatefulWidget {
   const Schedule({super.key});
@@ -140,16 +142,58 @@ class _ScheduleState extends State<Schedule> {
               SizedBox(height: 10),
               _socialSupportDropdown(),
               SizedBox(height: 10),
-              _religiousOrCulturalFactorsDropdown(),
+              // _religiousOrCulturalFactorsDropdown(),
               SizedBox(height: 30),
               Align(
                 alignment: Alignment.centerRight,
                 child: GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => ScheduleSecondNew()),
-                    );
+                  onTap: () async {
+                    if (selectedStatus != null &&
+                        selectedCivilStatus != null &&
+                        selectedLivingSituation != null &&
+                        selectedFinancialStatus != null &&
+                        selectedSocialSupport != null) {
+                      try {
+                        final userId = await SessionService.getUserId();
+                        if (userId != null) {
+                          final generalInfoApiService = GeneralInfoApiService();
+                          await generalInfoApiService.saveGeneralInfo(
+                            patientId: userId.toString(), // Use the actual user ID
+                            empStatus: selectedStatus!,
+                            civilStatus: selectedCivilStatus!,
+                            livingStatus: selectedLivingSituation!,
+                            income: selectedFinancialStatus!,
+                            socialLife: selectedSocialSupport!,
+                          );
+
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => ScheduleSecondNew()),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Failed to get user ID from session'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Please fill all the fields'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
                   },
                   // onTap: () {
                   //   if (selectedStatus != null &&
@@ -488,53 +532,53 @@ class _ScheduleState extends State<Schedule> {
     );
   }
 
-  DropdownButtonFormField _religiousOrCulturalFactorsDropdown() {
-    return DropdownButtonFormField<String>(
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: Color(0xff74B8FF).withOpacity(0.2),
-        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 15),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide.none,
-        ),
-        prefixIcon: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: EdgeInsets.only(left: 10),
-              child: Text(
-                "Faith: ",
-                style: TextStyle(color: Colors.black, fontWeight: FontWeight.w500),
-              ),
-            ),
-            SizedBox(width: 10),
-          ],
-        ),
-      ),
-      hint: Text(
-        "Select religious or cultural factors",
-        style: TextStyle(color: Colors.grey),
-      ),
-      icon: SvgPicture.asset(
-        'assets/icons/dropdown.svg',
-        height: 20,
-        width: 20,
-      ),
-      value: selectedReligiousOrCulturalFactors,
-      items: religiousOrCulturalFactors.map((String status) {
-        return DropdownMenuItem<String>(
-          value: status,
-          child: Text(status),
-        );
-      }).toList(),
-      onChanged: (value) {
-        setState(() {
-          selectedReligiousOrCulturalFactors = value;
-        });
-      },
-    );
-  }
+  // DropdownButtonFormField _religiousOrCulturalFactorsDropdown() {
+  //   return DropdownButtonFormField<String>(
+  //     decoration: InputDecoration(
+  //       filled: true,
+  //       fillColor: Color(0xff74B8FF).withOpacity(0.2),
+  //       contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 15),
+  //       border: OutlineInputBorder(
+  //         borderRadius: BorderRadius.circular(10),
+  //         borderSide: BorderSide.none,
+  //       ),
+  //       prefixIcon: Row(
+  //         mainAxisSize: MainAxisSize.min,
+  //         children: [
+  //           Padding(
+  //             padding: EdgeInsets.only(left: 10),
+  //             child: Text(
+  //               "Faith: ",
+  //               style: TextStyle(color: Colors.black, fontWeight: FontWeight.w500),
+  //             ),
+  //           ),
+  //           SizedBox(width: 10),
+  //         ],
+  //       ),
+  //     ),
+  //     hint: Text(
+  //       "Select religious or cultural factors",
+  //       style: TextStyle(color: Colors.grey),
+  //     ),
+  //     icon: SvgPicture.asset(
+  //       'assets/icons/dropdown.svg',
+  //       height: 20,
+  //       width: 20,
+  //     ),
+  //     value: selectedReligiousOrCulturalFactors,
+  //     items: religiousOrCulturalFactors.map((String status) {
+  //       return DropdownMenuItem<String>(
+  //         value: status,
+  //         child: Text(status),
+  //       );
+  //     }).toList(),
+  //     onChanged: (value) {
+  //       setState(() {
+  //         selectedReligiousOrCulturalFactors = value;
+  //       });
+  //     },
+  //   );
+  // }
 
   TextField _textField (){
     return TextField(
