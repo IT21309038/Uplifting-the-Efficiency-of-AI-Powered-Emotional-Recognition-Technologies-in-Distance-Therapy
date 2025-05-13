@@ -9,3 +9,4 @@ pydantic
 aiofiles
 python-dotenv
 websockets
+matplotlib
