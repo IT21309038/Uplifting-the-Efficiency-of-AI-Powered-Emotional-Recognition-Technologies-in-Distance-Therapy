@@ -115,6 +115,46 @@ export const AgoraProvider = ({
     return await response.blob(); // Returns image/png blob
   };
 
+  const getStressReportImage = async (data) => {
+    const response = await fetch(
+      "http://localhost:8001/api/vocal-stress-report",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data.current),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch stress report image");
+    }
+
+    const blob = await response.blob();
+    return blob;
+  };
+
+  const getEmotionReportImage = async (data) => {
+    const response = await fetch(
+      "http://localhost:8001/api/vocal-emotion-report",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data.current),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch emotion report image");
+    }
+
+    const blob = await response.blob();
+    return blob;
+  };
+
   //Report generation payload
   const payload = {
     patient_id: patientID,
@@ -170,6 +210,50 @@ export const AgoraProvider = ({
       })
       .catch((error) => {
         console.error("Error creating Face Stress report:", error);
+      });
+  };
+
+  const handleCreateVocalStressReport = (blob) => {
+    formDataAudioStress.append(
+      "report",
+      new Blob([JSON.stringify(payload)], { type: "application/json" })
+    );
+
+    formDataAudioStress.append("file", blob);
+
+    apiDefinitions
+      .crearteReport(formDataAudioStress)
+      .then((response) => {
+        if (response.status === 201) {
+          console.log("Vocal Stress report created successfully");
+        } else {
+          console.error("Failed to create Vocal Stress report");
+        }
+      })
+      .catch((error) => {
+        console.error("Error creating Vocal Stress report:", error);
+      });
+  };
+
+  const handleCreateVocalEmotionReport = (blob) => {
+    formDataAudioEmotion.append(
+      "report",
+      new Blob([JSON.stringify(payload)], { type: "application/json" })
+    );
+
+    formDataAudioEmotion.append("file", blob);
+
+    apiDefinitions
+      .crearteReport(formDataAudioEmotion)
+      .then((response) => {
+        if (response.status === 201) {
+          console.log("Vocal Emotion report created successfully");
+        } else {
+          console.error("Failed to create Vocal Emotion report");
+        }
+      })
+      .catch((error) => {
+        console.error("Error creating Vocal Emotion report:", error);
       });
   };
 
@@ -580,11 +664,15 @@ export const AgoraProvider = ({
           fetchPlotAsBlob(String(user.uid), "emotion"),
         ]);
 
-
+        const vocalStress = await getStressReportImage(emotionData1);
+        const vocalEmotion = await getEmotionReportImage(emotionData1);
 
         console.log("📤 Generating reports...");
         handleCreateFaceEmotionReport(emotionBlob);
         handleCreateFaceStressReport(stressBlob);
+
+        handleCreateVocalEmotionReport(vocalEmotion);
+        handleCreateVocalStressReport(vocalStress);
 
         reportGeneratedForUser.current.add(user.uid);
         console.log(`✅ Reports created for user ${user.uid}`);

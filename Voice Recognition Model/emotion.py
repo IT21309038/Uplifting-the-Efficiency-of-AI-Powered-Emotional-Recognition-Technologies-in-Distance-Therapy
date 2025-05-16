@@ -2,7 +2,7 @@ import logging
 import os
 import numpy as np
 import tensorflow as tf
-from fastapi import FastAPI, HTTPException, UploadFile, File, WebSocket
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File, WebSocket
 from pydantic import BaseModel
 import uvicorn
 import librosa
@@ -13,10 +13,20 @@ from collections import Counter
 from datetime import datetime
 import json
 import subprocess
-from pydub import AudioSegment
+# from pydub import AudioSegment
 from typing import Optional
 import asyncio
-
+from fastapi import Query
+import base64
+import json
+import uuid
+import matplotlib.pyplot as plt
+import base64
+import json
+from io import BytesIO
+from fastapi.responses import StreamingResponse
+from fastapi import Query, HTTPException
+from starlette.websockets import WebSocketDisconnect
 
 # Load the saved model
 model = load_model("emotion_recognition_model.h5")
@@ -221,6 +231,73 @@ async def websocket_audio_stream(websocket: WebSocket):
         except:
             pass
         logging.info("WebSocket connection closed")
+
+
+@app.post("/api/vocal-stress-report")
+async def stress_report(request: Request):
+    try:
+        emotion_data = await request.json()
+
+        if not emotion_data:
+            raise HTTPException(status_code=400, detail="Empty data")
+
+        stress_levels = [entry["stress_level"] for entry in emotion_data]
+
+        buf = BytesIO()
+        plt.figure(figsize=(10, 6))
+        plt.plot(stress_levels, marker='o', color='blue', label="Stress Level")
+        plt.axhline(0, linestyle='--', color='gray', label='Neutral')
+        plt.title("Stress Over Time")
+        plt.xlabel("Time")
+        plt.ylabel("Stress Level")
+        plt.grid(True)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(buf, format='png')
+        plt.close()
+        buf.seek(0)
+
+        return StreamingResponse(buf, media_type="image/png")
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to generate stress report: {str(e)}")
+
+
+@app.post("/api/vocal-emotion-report")
+async def emotion_report(request: Request):
+    try:
+        emotion_data = await request.json()
+
+        if not emotion_data:
+            raise HTTPException(status_code=400, detail="Empty data")
+
+        emotion_labels = ['neutral', 'calm', 'happy',
+                          'sad', 'angry', 'fear', 'disgust', 'surprise']
+        emotions = [entry["emotion"] for entry in emotion_data]
+        indices = [emotion_labels.index(
+            e) if e in emotion_labels else -1 for e in emotions]
+
+        buf = BytesIO()
+        plt.figure(figsize=(10, 6))
+        plt.step(range(len(indices)), indices, color='red',
+                 where='mid', label="Emotions")
+        plt.yticks(range(len(emotion_labels)), emotion_labels)
+        plt.title("Emotion Changes Over Time")
+        plt.xlabel("Time")
+        plt.ylabel("Emotion")
+        plt.grid(True)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(buf, format='png')
+        plt.close()
+        buf.seek(0)
+
+        return StreamingResponse(buf, media_type="image/png")
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to generate emotion report: {str(e)}")
 
 
 # Run the FastAPI app
