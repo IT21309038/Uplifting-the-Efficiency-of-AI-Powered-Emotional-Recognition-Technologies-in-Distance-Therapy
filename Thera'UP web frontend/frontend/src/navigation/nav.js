@@ -49,20 +49,6 @@ export const navigation = [
         ],
         allowedRoles: ["DOCTOR"],
       },
-      {
-        key: "3.2",
-        label: "Stress Report",
-        path: "/Reports/Stress",
-        breadcrumb: [
-          {
-            title: "Reports",
-          },
-          {
-            title: "Stress Report",
-          },
-        ],
-        allowedRoles: ["DOCTOR"],
-      },
     ],
   },
   // {

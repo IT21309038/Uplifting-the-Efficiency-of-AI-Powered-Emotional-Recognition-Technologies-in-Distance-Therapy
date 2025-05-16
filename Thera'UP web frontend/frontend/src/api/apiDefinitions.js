@@ -50,6 +50,12 @@ const apiDefinitions = {
   crearteReport: async function (payload) {
     return await api.post(`reports/create`, payload);
   },
+
+  getReports: async function (offset, pageSize, patientId, doctorId) {
+    return await api.get(
+      `reports/get-report-paginated/${offset}/${pageSize}?patientId=${patientId}&doctorId=${doctorId}`
+    );
+  }
 };
 
 export default apiDefinitions;
