@@ -1,32 +1,41 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class PerActivity extends StatefulWidget {
   final String activityName;
-  final double allocatedTime; // Time in hours
+  final double allocatedTime;
   final String location;
+  final String activityId; // Add this line
 
   const PerActivity({
-    Key? key,
+    super.key,
     required this.activityName,
     required this.allocatedTime,
     required this.location,
-  }) : super(key: key);
+    required this.activityId, // Add this
+  });
 
   @override
   _PerActivityState createState() => _PerActivityState();
 }
+
 
 class _PerActivityState extends State<PerActivity> {
   Timer? _timer;
   late int _totalSeconds;
   int _remainingSeconds = 0;
   bool _isRunning = false;
+  bool _isPaused = false;
+
+  final String activityId = "ACT001"; // Replace this with a dynamic value if needed
+  final String patientId = "1"; // Hardcoded as per your instruction
 
   @override
   void initState() {
     super.initState();
-    _totalSeconds = (widget.allocatedTime * 3600).toInt(); // Convert hours to seconds
+    _totalSeconds = (widget.allocatedTime * 60).toInt();
     _remainingSeconds = _totalSeconds;
   }
 
@@ -34,6 +43,7 @@ class _PerActivityState extends State<PerActivity> {
     if (!_isRunning) {
       setState(() {
         _isRunning = true;
+        _isPaused = false;
       });
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (_remainingSeconds > 0) {
@@ -47,20 +57,50 @@ class _PerActivityState extends State<PerActivity> {
     }
   }
 
-  void _stopTimer() {
+  void _pauseTimer() {
     if (_isRunning) {
       setState(() {
         _isRunning = false;
+        _isPaused = true;
       });
       _timer?.cancel();
     }
   }
 
-  void _resetTimer() {
-    setState(() {
-      _remainingSeconds = _totalSeconds;
-      _stopTimer();
-    });
+  Future<void> _stopTimer() async {
+    if (_isRunning || _isPaused) {
+      setState(() {
+        _isRunning = false;
+        _isPaused = false;
+      });
+      _timer?.cancel();
+      await _updateRemainingTimeToServer();
+    }
+  }
+
+  Future<void> _updateRemainingTimeToServer() async {
+    final url = Uri.parse("https://theraupbackend.pixelcore.lk/api/v1/theraup/postTherapy/updateRemainingTime");
+
+    try {
+      final response = await http.put(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "patient_id": patientId,
+          "activity_id": widget.activityId,
+          "remaining_time": _remainingSeconds ~/ 60,
+
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        print("Successfully updated remaining time.");
+      } else {
+        print("Failed to update time. Status: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Error sending update: $e");
+    }
   }
 
   String _formatTime(int seconds) {
@@ -70,13 +110,12 @@ class _PerActivityState extends State<PerActivity> {
   }
 
   double _progressPercentage() {
-    return _remainingSeconds / _totalSeconds;
+    return _totalSeconds == 0 ? 0 : _remainingSeconds / _totalSeconds;
   }
 
   @override
   Widget build(BuildContext context) {
     final Color primaryColor = Color(0xFF448aff);
-    final Color accentColor = primaryColor.withOpacity(0.8);
     final Color lightColor = primaryColor.withOpacity(0.2);
 
     return Scaffold(
@@ -93,7 +132,6 @@ class _PerActivityState extends State<PerActivity> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Circular Timer
             Stack(
               alignment: Alignment.center,
               children: [
@@ -124,7 +162,7 @@ class _PerActivityState extends State<PerActivity> {
             ),
             const SizedBox(height: 10),
             Text(
-              "Allocated Time: ${widget.allocatedTime.toStringAsFixed(1)} hours",
+              "Allocated Time: ${widget.allocatedTime.toStringAsFixed(0)} minutes",
               style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 40),
@@ -147,6 +185,21 @@ class _PerActivityState extends State<PerActivity> {
                 ),
                 const SizedBox(width: 20),
                 ElevatedButton(
+                  onPressed: _pauseTimer,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                  child: const Text(
+                    "Pause",
+                    style: TextStyle(fontSize: 16, color: Colors.white),
+                  ),
+                ),
+                const SizedBox(width: 20),
+                ElevatedButton(
                   onPressed: _stopTimer,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.redAccent,
@@ -161,7 +214,7 @@ class _PerActivityState extends State<PerActivity> {
                   ),
                 ),
               ],
-            )
+            ),
           ],
         ),
       ),

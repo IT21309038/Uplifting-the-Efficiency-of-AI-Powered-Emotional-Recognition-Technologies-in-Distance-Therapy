@@ -12,4 +12,5 @@ public class ActivityProgressDTO {
     private String activity_name;
     private double completion_percentage;
     private String alertLevel; // Alert level for this activity
+    private int remaining_time;
 }

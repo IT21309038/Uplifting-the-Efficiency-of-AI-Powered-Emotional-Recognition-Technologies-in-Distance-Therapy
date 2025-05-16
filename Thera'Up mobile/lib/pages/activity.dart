@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'per_activity.dart'; // Import the renamed PerActivity class
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'per_activity.dart';
+import 'package:thera_up/main.dart';
 
 class Activity extends StatelessWidget {
   const Activity({Key? key}) : super(key: key);
@@ -36,19 +39,153 @@ class ActivitiesOverview extends StatefulWidget {
   _ActivitiesOverviewState createState() => _ActivitiesOverviewState();
 }
 
-class _ActivitiesOverviewState extends State<ActivitiesOverview> {
-  int totalActivitiesCompleted = 12; // Example data
-  String totalTimeSpent = "5h 30m"; // Example data
-  List<ActivityModel> availableActivities = [
-    ActivityModel("Reading", 0.7, Icons.book),
-    ActivityModel("Meditation", 0.4, Icons.self_improvement),
-    ActivityModel("Yoga", 0.9, Icons.spa),
-    ActivityModel("Writing", 0.3, Icons.edit),
-  ];
+class _ActivitiesOverviewState extends State<ActivitiesOverview> with RouteAware {
+  int totalActivities = 0;
+  int completedActivities = 0;
+  String totalTimeAssigned = "0 min";
+  List<ActivityModel> availableActivities = [];
+  bool isLoading = true;
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchActivityData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context)!);
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    // Called when coming back to this page
+    fetchActivityData();
+  }
+
+  Future<void> fetchActivityData() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      final response = await http.get(
+        Uri.parse('http://192.168.6.32:8080/api/v1/theraup/postTherapy/progress/1'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body)['data'];
+        setState(() {
+          totalActivities = data['totalActivities'] ?? 0;
+          completedActivities = data['completedActivities'] ?? 0;
+          totalTimeAssigned = "${data['totalTimeAssigned'] ?? 0} min";
+
+          // Handle duplicates by selecting the entry with highest completion_percentage
+          final uniqueActivities = <String, Map>{};
+          for (var activity in data['activityProgressList']) {
+            final currentId = activity['activity_id'];
+            if (!uniqueActivities.containsKey(currentId) ||
+                (activity['completion_percentage'] as num) >
+                    (uniqueActivities[currentId]!['completion_percentage'] as num)) {
+              uniqueActivities[currentId] = activity;
+            }
+          }
+
+          availableActivities = uniqueActivities.values.map((activity) {
+            return ActivityModel(
+              activity['activity_name'],
+              (activity['completion_percentage'] as num).toDouble(),
+              _getIconForActivity(activity['activity_name']),
+              activity['activity_id'],
+              (activity['remaining_time'] as num).toDouble(), // remaining_time is in minutes
+            );
+          }).toList();
+          isLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load data: Status ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching data: $e');
+      setState(() {
+        isLoading = false;
+        errorMessage = 'Failed to connect to server. Please check your connection and try again.';
+        // Fallback to mock data (matches the latest API response)
+        totalActivities = 6;
+        completedActivities = 1;
+        totalTimeAssigned = "120 min";
+        availableActivities = [
+          ActivityModel("Guided Meditation", 50.0, Icons.self_improvement, "ACT002", 10.0),
+          ActivityModel("Light Stretching", 0.0, Icons.fitness_center, "ACT025", 20.0),
+          ActivityModel("Clay Shaping", 0.0, Icons.brush, "ACT040", 25.0),
+          ActivityModel("Deep Breathing", 100.0, Icons.air, "ACT001", 0.0),
+        ];
+      });
+    }
+  }
+
+  IconData _getIconForActivity(String name) {
+    switch (name.toLowerCase()) {
+      case 'guided meditation':
+        return Icons.self_improvement;
+      case 'light stretching':
+        return Icons.fitness_center;
+      case 'clay shaping':
+        return Icons.brush;
+      case 'deep breathing':
+        return Icons.air;
+      default:
+        return Icons.event;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
+    return isLoading
+        ? Center(child: CircularProgressIndicator())
+        : errorMessage != null
+        ? Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            errorMessage!,
+            style: TextStyle(fontSize: 16, color: Colors.red),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: fetchActivityData,
+            child: Text('Retry'),
+          ),
+          SizedBox(height: 20),
+          Text(
+            'Showing offline data',
+            style: TextStyle(fontSize: 14, color: Colors.grey),
+          ),
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.all(20.0),
+              children: [
+                _overviewSection(),
+                const SizedBox(height: 30),
+                _availableActivitiesSection(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    )
+        : ListView(
       padding: EdgeInsets.all(20.0),
       children: [
         _overviewSection(),
@@ -64,8 +201,8 @@ class _ActivitiesOverviewState extends State<ActivitiesOverview> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Color(0xFFCEE6FF), // Soft pastel blue
-            Color(0xFFE2C3F8), // Light lavender (complementary to blue)
+            Color(0xFFCEE6FF),
+            Color(0xFFE2C3F8),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -95,15 +232,14 @@ class _ActivitiesOverviewState extends State<ActivitiesOverview> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _overviewCard("Completed", "$totalActivitiesCompleted"),
-              _overviewCard("Time Spent", totalTimeSpent),
+              _overviewCard("Completed", "$completedActivities"),
+              _overviewCard("Time Assigned", totalTimeAssigned),
             ],
           ),
         ],
       ),
     );
   }
-
 
   Widget _overviewCard(String title, String value) {
     return Container(
@@ -177,8 +313,9 @@ class _ActivitiesOverviewState extends State<ActivitiesOverview> {
           MaterialPageRoute(
             builder: (context) => PerActivity(
               activityName: activity.name,
-              allocatedTime: activity.progress * 2,
+              allocatedTime: activity.remainingTime, // In minutes
               location: "Room 101",
+              activityId: activity.activityId,
             ),
           ),
         );
@@ -189,8 +326,8 @@ class _ActivitiesOverviewState extends State<ActivitiesOverview> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Color(0xFFCEE6FF).withOpacity(1), // Soft pastel blue (fully opaque)
-              Color(0xFFFFFFFF).withOpacity(1), // White (fully opaque)
+              Color(0xFFCEE6FF).withOpacity(1),
+              Color(0xFFFFFFFF).withOpacity(1),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -223,13 +360,13 @@ class _ActivitiesOverviewState extends State<ActivitiesOverview> {
                   ),
                   const SizedBox(height: 10),
                   LinearProgressIndicator(
-                    value: activity.progress,
+                    value: activity.progress / 100, // Convert percentage to 0-1 scale
                     backgroundColor: Colors.grey[300],
                     color: Color(0xffFFA726),
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    "${(activity.progress * 100).toInt()}% completed",
+                    "${activity.progress.toInt()}% completed",
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.black,
@@ -247,8 +384,10 @@ class _ActivitiesOverviewState extends State<ActivitiesOverview> {
 
 class ActivityModel {
   final String name;
-  final double progress;
+  final double progress; // In percentage (0-100)
   final IconData icon;
+  final String activityId;
+  final double remainingTime; // In minutes
 
-  ActivityModel(this.name, this.progress, this.icon);
+  ActivityModel(this.name, this.progress, this.icon, this.activityId, this.remainingTime);
 }
