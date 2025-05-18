@@ -339,7 +339,7 @@ export const AgoraProvider = ({
 
       // Constants for 15-second audio chunks
       const SAMPLE_RATE = 16000; // 16kHz
-      const CHUNK_DURATION = 45; // seconds
+      const CHUNK_DURATION = 60; // seconds
       const TARGET_BUFFER_SIZE = SAMPLE_RATE * CHUNK_DURATION;
       const CHUNK_SIZE = 4096; // Processing chunk size
 
@@ -963,31 +963,72 @@ export const AgoraProvider = ({
     ],
   };
 
+  // const chartOptions = {
+  //   responsive: true,
+  //   maintainAspectRatio: false,
+  //   plugins: {
+  //     legend: {
+  //       position: "top",
+  //     },
+  //     title: {
+  //       display: true,
+  //       text: "Stress Levels Over Time",
+  //     },
+  //   },
+  //   scales: {
+  //     x: {
+  //       type: "category",
+  //       ticks: {
+  //         autoSkip: false,
+  //       },
+  //     },
+  //     y: {
+  //       beginAtZero: true,
+  //       min: 0,
+  //       max: 100,
+  //       ticks: {
+  //         stepSize: 10,
+  //       },
+  //     },
+  //   },
+  // };
+
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        position: "top",
-      },
       title: {
         display: true,
         text: "Stress Levels Over Time",
+      },
+      legend: {
+        position: "top",
+      },
+      tooltip: {
+        mode: "index",
+        intersect: false,
       },
     },
     scales: {
       x: {
         type: "category",
+        title: {
+          display: true,
+          text: "Time",
+        },
         ticks: {
           autoSkip: false,
         },
       },
       y: {
-        beginAtZero: true,
-        min: 0,
-        max: 100,
+        // REMOVE fixed min/max here
+        title: {
+          display: true,
+          text: "Stress Level",
+        },
         ticks: {
-          stepSize: 10,
+          stepSize: 0.2, // optional
+          callback: (value) => value.toFixed(1),
         },
       },
     },
@@ -998,7 +1039,7 @@ export const AgoraProvider = ({
 
     try {
       const stressLevel = response.stressLevel ?? 0.0; // Use server-provided stress level
-      const timestamp = response.timestamp || new Date().toISOString(); // Use server timestamp or fallback to now
+      const timestamp = response.timestamp || new Date().toLocaleTimeString(); // Use server timestamp or fallback to now
       const emotion = response.emotion ?? "neutral"; // Emotion if needed
 
       setAudioClips((prev) => [
@@ -1024,13 +1065,12 @@ export const AgoraProvider = ({
   };
 
   const audioEmotionLabels = [
-    "neutral",
-    "calm",
-    "happy",
-    "sad",
     "angry",
-    "fear",
     "disgust",
+    "fear",
+    "happy",
+    "neutral",
+    "sad",
     "surprise",
   ];
 
