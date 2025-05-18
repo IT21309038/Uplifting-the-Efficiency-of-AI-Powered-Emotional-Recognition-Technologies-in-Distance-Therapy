@@ -33,7 +33,7 @@ emotion_to_stress = {
 }
 decay_factor = 0.2
 fps = 10
-window_duration = 2
+window_duration = 20
 frames_per_window = fps * window_duration
 
 class ConnectionState:
@@ -95,7 +95,7 @@ def generate_final_plots(stress_levels, window_emotions):
     plt.figure(figsize=(10, 6))
     plt.plot(stress_levels, marker='o', color='blue', label="Stress Level")
     plt.axhline(0, linestyle='--', color='gray', label='Neutral')
-    plt.title("Stress Over Time")
+    plt.title("Stress Over Time From Facial Emotion Recognition")
     plt.xlabel("Time")
     plt.ylabel("Stress")
     plt.grid(True)
@@ -109,7 +109,7 @@ def generate_final_plots(stress_levels, window_emotions):
         indices = [emotion_labels.index(e) for e in window_emotions]
         plt.step(range(len(indices)), indices, color='red', where='mid', label="Emotions")
         plt.yticks(range(len(emotion_labels)), emotion_labels)
-        plt.title("Emotion Changes")
+        plt.title("Emotion Changes From Facial Emotion Recognition")
         plt.xlabel("Time")
         plt.ylabel("Emotion")
         plt.grid(True)
