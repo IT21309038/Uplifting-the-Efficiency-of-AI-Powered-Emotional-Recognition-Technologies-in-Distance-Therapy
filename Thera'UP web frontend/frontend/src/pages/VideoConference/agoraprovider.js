@@ -68,6 +68,8 @@ export const AgoraProvider = ({
   const [channel, setChannel] = useState(sessionID);
   const [token, setToken] = useState("");
 
+  const lastWindowCounter = useRef(0);
+
   //graph data
   const [stressHistory, setStressHistory] = useState([]);
   const [emotionHistory, setEmotionHistory] = useState([]);
@@ -283,17 +285,29 @@ export const AgoraProvider = ({
         const data = JSON.parse(event.data);
         console.log("📥 Real-time Emotion/Stress from backend:", data);
 
-        const timestamp = new Date().toISOString();
+        // Only update if new window counter
+        if (
+          data.windowCounter &&
+          data.windowCounter !== lastWindowCounter.current
+        ) {
+          lastWindowCounter.current = data.windowCounter; // ✅ Update the ref
 
-        setStressHistory((prev) => [
-          ...prev,
-          { timestamp, userId: data.userId, stress: data.stressLevel },
-        ]);
+          const timestamp = new Date().toISOString();
 
-        setEmotionHistory((prev) => [
-          ...prev,
-          { timestamp, userId: data.userId, emotion: data.emotion },
-        ]);
+          setStressHistory((prev) => [
+            ...prev,
+            { timestamp, userId: data.userId, stress: data.stressLevel },
+          ]);
+
+          setEmotionHistory((prev) => [
+            ...prev,
+            { timestamp, userId: data.userId, emotion: data.emotion },
+          ]);
+        } else {
+          console.log(
+            `⏭️ Skipped update. Current windowCounter: ${data.windowCounter}`
+          );
+        }
       } catch (err) {
         console.error("❌ Failed to parse WebRTC message:", err);
       }

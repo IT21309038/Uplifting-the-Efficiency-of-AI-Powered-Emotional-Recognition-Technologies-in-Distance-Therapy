@@ -42,6 +42,7 @@ class ConnectionState:
         self.current_stress_level = 0
         self.stress_levels = []
         self.window_emotions = []
+        self.window_counter = 1
 
 connection_states = {}
 
@@ -86,6 +87,7 @@ def process_frame(frame, state: ConnectionState):
         state.stress_levels.append(state.current_stress_level)
         state.window_emotions.append(top_emotion)
         state.current_window_emotions.clear()
+        state.window_counter += 1
 
     return frame, state.current_stress_level
 
@@ -161,7 +163,8 @@ class WebRTCServer:
                             "userId": uid,
                             "emotion": current_state.window_emotions[
                                 -1] if current_state.window_emotions else "Neutral",
-                            "stressLevel": current_state.stress_levels[-1] if current_state.stress_levels else 0.0
+                            "stressLevel": current_state.stress_levels[-1] if current_state.stress_levels else 0.0,
+                            "windowCounter": current_state.window_counter
                         }
 
                         # Send only if channel is open
