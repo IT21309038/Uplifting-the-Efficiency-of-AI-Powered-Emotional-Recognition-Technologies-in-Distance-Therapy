@@ -156,7 +156,8 @@ public class PostTherapyImpl implements PostTherapyService {
                     postTherapy.getActivity().getActivity_id(),
                     postTherapy.getActivity().getName(),
                     postTherapy.getCompletion_percentage(),
-                    postTherapy.getAlertLevel()
+                    postTherapy.getAlertLevel(),
+                    postTherapy.getRemaining_time()
             );
             activityProgressList.add(activityProgress);
         }
