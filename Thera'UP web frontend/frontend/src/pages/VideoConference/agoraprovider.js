@@ -847,20 +847,23 @@ export const AgoraProvider = ({
     ),
     datasets: [
       {
-        label: "Positive Stress",
-        data: positiveStressData,
-        borderColor: "#ff4d4d", // red
-        backgroundColor: "rgba(255, 77, 77, 0.2)",
+        label: "🟢Negative Stress 🔴Positive Stress",
+        data: stressHistory.map((entry) => entry.stress),
+        backgroundColor: "rgba(0, 0, 0, 0)", // No fill
+        borderColor: "rgba(0, 0, 0, 0)", // default won't be used
         tension: 0.4,
-        spanGaps: true, // allow skipping nulls
-      },
-      {
-        label: "Negative Stress",
-        data: negativeStressData,
-        borderColor: "#00cc66", // green
-        backgroundColor: "rgba(0, 204, 102, 0.2)",
-        tension: 0.4,
-        spanGaps: true, // allow skipping nulls
+        segment: {
+          borderColor: (ctx) => {
+            const y = ctx?.p0?.parsed?.y;
+            if (y === undefined || y === null) return "#cccccc";
+            return y < 0 ? "#00cc66" : "#ff4d4d";
+          },
+        },
+        pointBackgroundColor: (ctx) => {
+          const y = ctx?.parsed?.y;
+          if (y === undefined || y === null) return "#cccccc";
+          return y < 0 ? "#00cc66" : "#ff4d4d";
+        },
       },
     ],
   };
