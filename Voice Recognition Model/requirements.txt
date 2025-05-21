@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+numpy
+tensorflow
+keras
+librosa
+soundfile
+pydantic
+aiofiles
+python-dotenv
+websockets
+matplotlib

@@ -9,5 +9,7 @@ public interface PostTherapyService {
     PatientProgressDTO getPatientProgress(String patientId);
     void logActivityCompletion(ActivityCompletionDTO completionDTO);
     List<SuggestedActivityDTO> suggestActivities(PatientPreferencesDTO preferences);
-    void updateRemainingTime(UpdateRemainingTimeDTO updateRemainingTimeDTO); // New method
+    void updateRemainingTime(UpdateRemainingTimeDTO updateRemainingTimeDTO);
+    AllPatientsProgressDTO getAllPatientsProgress();
+    void deleteAssignedActivity(String patientId, String activityId); // Updated method signature
 }

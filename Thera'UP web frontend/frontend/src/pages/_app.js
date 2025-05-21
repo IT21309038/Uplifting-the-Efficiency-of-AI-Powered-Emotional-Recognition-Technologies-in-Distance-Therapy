@@ -146,6 +146,7 @@ const App = ({ Component, pageProps: { session, ...pageProps } }) => {
 
   return (
     <>
+      <Toaster position="top-right" />
       <ToastContainer />
       <SessionProvider session={session}>
         <AuthWrapper>
@@ -265,11 +266,11 @@ const App = ({ Component, pageProps: { session, ...pageProps } }) => {
                       </Box>
                       <Component {...pageProps} />
                     </Content>
-                    <Footer style={{ textAlign: "center" }}>
+                    {/* <Footer style={{ textAlign: "center" }}>
                       RP 24-25J-126©{new Date().getFullYear()}. Made with ❤️
                       by&nbsp;
                       <a href="#">24-25J-126 Team</a>
-                    </Footer>
+                    </Footer> */}
                   </Layout>
                 </Layout>
               )}

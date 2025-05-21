@@ -49,20 +49,6 @@ export const navigation = [
         ],
         allowedRoles: ["DOCTOR"],
       },
-      {
-        key: "3.2",
-        label: "Stress Report",
-        path: "/Reports/Stress",
-        breadcrumb: [
-          {
-            title: "Reports",
-          },
-          {
-            title: "Stress Report",
-          },
-        ],
-        allowedRoles: ["DOCTOR"],
-      },
     ],
   },
   // {
@@ -82,4 +68,32 @@ export const navigation = [
   //   ],
   //   allowedRoles: ["DOCTOR"], // Specify allowedRoles here as well
   // },
+  {
+    key: "4",
+    label: "Activities",
+    icon: (
+      <Icon icon="carbon:user-activity" style={{ fontSize: defaultIconSize }} />
+    ),
+    path: "/activities/test",
+    breadcrumb: [
+      {
+        title: "Activities",
+      },
+    ],
+    allowedRoles: ["DOCTOR"], // Keep allowedRoles for consistency
+  },
+  {
+    key: "5",
+    label: "Track Activities",
+    icon: (
+      <Icon icon="carbon:user-activity" style={{ fontSize: defaultIconSize }} />
+    ),
+    path: "/TrackActivities/viewAll",
+    breadcrumb: [
+      {
+        title: "Track Activities",
+      },
+    ],
+    allowedRoles: ["DOCTOR"], // Keep allowedRoles for consistency
+  },
 ];
