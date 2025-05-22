@@ -222,6 +222,7 @@ class _ChoiceState extends State<Choice> {
       setState(() {
         isLoading = false;
       });
+      showValidateButton = false;
     }
   }
 
