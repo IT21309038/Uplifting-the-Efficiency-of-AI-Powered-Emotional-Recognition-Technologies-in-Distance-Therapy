@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:thera_up/models/appointment_suggestion_model.dart';
+import 'package:thera_up/pages/base_ui.dart';
 import 'package:thera_up/pages/therapy.dart';
 import 'package:thera_up/services/SessionService.dart';
 import 'package:thera_up/widgets/timeSelector.dart';
@@ -445,7 +446,7 @@ class _AppointmentSuggestionsState extends State<AppointmentSuggestions> {
                               );
                               Navigator.pushReplacement(
                                 context,
-                                MaterialPageRoute(builder: (context) => Therapy()), // Replace with your Therapy page widget
+                                MaterialPageRoute(builder: (context) => const BaseUi()), // Replace with your Therapy page widget
                               );
 
                             } else {
