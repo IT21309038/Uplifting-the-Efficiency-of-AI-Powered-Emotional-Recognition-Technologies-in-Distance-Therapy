@@ -259,6 +259,11 @@ async def websocket_audio_stream(websocket: WebSocket):
                         probabilities["happy"] = probabilities.get(
                             "happy", 0) + probabilities.pop("calm")
 
+                    # Merge surprise → neutral
+                    if "surprise" in probabilities:
+                        probabilities["neutral"] = probabilities.get(
+                            "neutral", 0) + probabilities.pop("surprise")
+
                     # Determine dominant emotion
                     dominant_emotion = max(
                         probabilities.items(), key=lambda x: x[1])[0]
