@@ -2,7 +2,10 @@ package com.rp.thera.up.serviceImpl;
 
 import com.rp.thera.up.DTO.patientDTO.*;
 import com.rp.thera.up.customException.PatientException;
-import com.rp.thera.up.entity.*;
+import com.rp.thera.up.entity.Patient;
+import com.rp.thera.up.entity.PatientGeneralInfo;
+import com.rp.thera.up.entity.PatientPhysicalInfo;
+import com.rp.thera.up.entity.Schedule;
 import com.rp.thera.up.repo.*;
 import com.rp.thera.up.service.PatientService;
 import org.modelmapper.ModelMapper;
@@ -42,10 +45,6 @@ public class PatientServiceImpl implements PatientService {
 
     @Autowired
     private ScheduleRepo scheduleRepo;
-
-    @Autowired
-    private StressScoreRecordRepository stressScoreRecodeRepo;
-
 
     @Override
     public void createPatient(PatientPostDTO patientPostDTO) throws PatientException {
@@ -288,15 +287,11 @@ public class PatientServiceImpl implements PatientService {
         PatientPhysicalInfo latestPhysicalInfo = patientPhysicalInfoRepo.findTopByPatientOrderByCreatedAtDesc(patient);
         Schedule latestSchedule = scheduleRepo.findTopByPatientOrderByDateDescTimeDesc(patient);
 
-        // Fetch the latest stressScoreRecode
-        StressScoreRecord latestStressScoreRecode = stressScoreRecodeRepo.findTopByPatientIdOrderByCreatedAtDesc(patientId);
-
         ReportDTO reportDTO = new ReportDTO();
         reportDTO.setPatient(patient);
         reportDTO.setLatestGeneralInfo(latestGeneralInfo);
         reportDTO.setLatestPhysicalInfo(latestPhysicalInfo);
         reportDTO.setLatestSchedule(latestSchedule);
-        reportDTO.setLatestStressScoreRecord(latestStressScoreRecode); // Set the latest stressScoreRecode
 
         return reportDTO;
     }

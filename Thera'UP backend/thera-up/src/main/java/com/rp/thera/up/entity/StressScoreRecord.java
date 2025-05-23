@@ -18,7 +18,6 @@ public class StressScoreRecord {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "patient_id")
     private String patientId;
     private float stressScore;
     private String stressLevel;

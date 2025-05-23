@@ -1,120 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:thera_up/models/User.dart';
 import 'package:thera_up/pages/login.dart';
-import 'package:thera_up/services/UserApiService.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:intl/intl.dart';
 
-class Profile extends StatefulWidget {
-  const Profile({Key? key}) : super(key: key);
-
-  @override
-  _ProfileState createState() => _ProfileState();
-}
-
-class _ProfileState extends State<Profile> {
-  User? _user;
-  bool _isLoading = true;
-  final UserApiService _apiService = UserApiService();
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchUserProfile();
-  }
-
-  Future<void> _fetchUserProfile() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final int? patientId = prefs.getInt('userId');
-      if (patientId == null) {
-        _showMessage(context, "User not logged in!");
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const Login()),
-        );
-        return;
-      }
-
-      final user = await _apiService.getUserProfile(patientId);
-      setState(() {
-        _user = user;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
-      _showMessage(context, e.toString());
-    }
-  }
-
-  Future<void> _clearSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-  }
-
-  String _getInitials(String fullName) {
-    final names = fullName.split(' ');
-    if (names.isEmpty) return '';
-    if (names.length == 1) return names[0][0].toUpperCase();
-    return (names[0][0] + names[1][0]).toUpperCase();
-  }
-
-  String _formatDate(String dateStr) {
-    try {
-      final date = DateTime.parse(dateStr);
-      return DateFormat('MMMM d, yyyy').format(date);
-    } catch (e) {
-      return dateStr;
-    }
-  }
+class Profile extends StatelessWidget {
+  const Profile({Key? key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: appBar(),
+      appBar:  appBar(),
       backgroundColor: Colors.white,
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _user == null
-          ? const Center(child: Text("Failed to load profile"))
-          : SingleChildScrollView(
+      body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             // Profile Circle
             CircleAvatar(
               radius: 50,
               backgroundColor: Colors.grey[200],
               child: Text(
-                _getInitials(_user!.fullName),
-                style: const TextStyle(
+                "JS", // Initials
+                style: TextStyle(
                   fontSize: 32,
                   color: Colors.purple,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             // User Name and Joined Date
             Text(
-              _user!.fullName,
-              style: const TextStyle(
+              "Zain Malik",
+              style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w600,
                 color: Colors.black,
               ),
             ),
-            const SizedBox(height: 5),
+            SizedBox(height: 5),
             Text(
-              "Joined ${_formatDate(_user!.joinedAt)}",
-              style: const TextStyle(
+              "Joined August 17, 2023",
+              style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey,
               ),
             ),
-            const SizedBox(height: 30),
+            SizedBox(height: 30),
             // General Information Section
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -126,7 +59,7 @@ class _ProfileState extends State<Profile> {
                       color: Colors.grey.withOpacity(0.1),
                       spreadRadius: 1,
                       blurRadius: 10,
-                      offset: const Offset(0, 1),
+                      offset: Offset(0, 1),
                     ),
                   ],
                   borderRadius: BorderRadius.circular(10),
@@ -143,8 +76,8 @@ class _ProfileState extends State<Profile> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // General Header
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 20.0),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
                           child: Text(
                             "General",
                             style: TextStyle(
@@ -154,47 +87,50 @@ class _ProfileState extends State<Profile> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20),
                         // Profile Details
                         ListTile(
                           leading: SvgPicture.asset('assets/icons/user.svg'),
                           title: Text(
-                            _user!.fullName,
-                            style: const TextStyle(fontSize: 16, color: Colors.black),
+                            "Zain Malik",
+                            style: TextStyle(fontSize: 16, color: Colors.black),
                           ),
                         ),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 20.0),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
                           child: Divider(),
                         ),
                         ListTile(
                           leading: SvgPicture.asset('assets/icons/email.svg'),
                           title: Text(
-                            _user!.email,
-                            style: const TextStyle(fontSize: 16, color: Colors.black),
+                            "zainmalik02323@gmail.com",
+                            style: TextStyle(fontSize: 16, color: Colors.black),
                           ),
                         ),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 20.0),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
                           child: Divider(),
                         ),
                         ListTile(
                           leading: SvgPicture.asset('assets/icons/phone.svg'),
                           title: Text(
-                            _user!.phone,
-                            style: const TextStyle(fontSize: 16, color: Colors.black),
+                            "071 123 4567",
+                            style: TextStyle(fontSize: 16, color: Colors.black),
                           ),
                         ),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 20.0),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
                           child: Divider(),
                         ),
                         ListTile(
                           leading: SvgPicture.asset('assets/icons/cake.svg'),
                           title: Text(
-                            "Birthday: ${_formatDate(_user!.dob)}",
-                            style: const TextStyle(fontSize: 16, color: Colors.black),
+                            "Birthday: 17 August 1995",
+                            style: TextStyle(fontSize: 16, color: Colors.black),
                           ),
+                          onTap: () {
+                            // Add feedback functionality here
+                          },
                         ),
                       ],
                     ),
@@ -202,8 +138,8 @@ class _ProfileState extends State<Profile> {
                 ),
               ),
             ),
-            const SizedBox(height: 30),
-            // Settings Section
+            SizedBox(height: 30),
+            //Settings Section
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Container(
@@ -214,7 +150,7 @@ class _ProfileState extends State<Profile> {
                       color: Colors.grey.withOpacity(0.1),
                       spreadRadius: 1,
                       blurRadius: 10,
-                      offset: const Offset(0, 1),
+                      offset: Offset(0, 1),
                     ),
                   ],
                   borderRadius: BorderRadius.circular(10),
@@ -230,9 +166,9 @@ class _ProfileState extends State<Profile> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Settings Header
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 20.0),
+                        // General Header
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
                           child: Text(
                             "Settings",
                             style: TextStyle(
@@ -242,10 +178,11 @@ class _ProfileState extends State<Profile> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20),
+                        // Profile Details
                         ListTile(
                           leading: SvgPicture.asset('assets/icons/lock-reset.svg'),
-                          title: const Text(
+                          title: Text(
                             "Change Password",
                             style: TextStyle(fontSize: 16, color: Colors.black),
                           ),
@@ -253,13 +190,13 @@ class _ProfileState extends State<Profile> {
                             _showChangePasswordDialog(context);
                           },
                         ),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 20.0),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
                           child: Divider(),
                         ),
                         ListTile(
                           leading: SvgPicture.asset('assets/icons/delete.svg'),
-                          title: const Text(
+                          title: Text(
                             "Delete Account",
                             style: TextStyle(fontSize: 16, color: Colors.black),
                           ),
@@ -273,11 +210,11 @@ class _ProfileState extends State<Profile> {
                 ),
               ),
             ),
-            const SizedBox(height: 30),
+            SizedBox(height: 30),
             // Sign Out Button
             TextButton(
               onPressed: () async {
-                await _clearSession();
+                await Profile(); // Clear session before navigating
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => const Login()),
@@ -295,9 +232,9 @@ class _ProfileState extends State<Profile> {
                 style: TextStyle(fontSize: 16, color: Colors.white),
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             // Version Info and Links
-            const Column(
+            Column(
               children: [
                 Text(
                   "Version 1.0.0",
@@ -311,73 +248,76 @@ class _ProfileState extends State<Profile> {
                 SizedBox(height: 5),
               ],
             ),
-            const SizedBox(height: 30),
+            SizedBox(height: 30),
           ],
         ),
       ),
     );
   }
 
-  AppBar appBar() {
+
+  AppBar appBar(){
     return AppBar(
       centerTitle: true,
-      title: const Text(
-        'Profile Page',
+      title: Text('Profile Page',
         style: TextStyle(
           color: Colors.black,
           fontSize: 20,
           fontWeight: FontWeight.bold,
-        ),
-      ),
+        ),),
       automaticallyImplyLeading: false,
       backgroundColor: Colors.white,
       elevation: 0,
     );
   }
 
+
   void _showChangePasswordDialog(BuildContext context) {
-    final TextEditingController oldPasswordController = TextEditingController();
-    final TextEditingController newPasswordController = TextEditingController();
-    final TextEditingController confirmPasswordController = TextEditingController();
+    final TextEditingController oldPasswordController =
+    TextEditingController();
+    final TextEditingController newPasswordController =
+    TextEditingController();
+    final TextEditingController confirmPasswordController =
+    TextEditingController();
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text(
+          title: Text(
             "Change Password",
             style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
           ),
-          content: SizedBox(
+          content: Container(
             width: 300,
             height: 250,
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 25),
+                  SizedBox(height: 25),
                   TextField(
                     controller: oldPasswordController,
                     obscureText: true,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: "Old Password",
                       border: OutlineInputBorder(),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
                   TextField(
                     controller: newPasswordController,
                     obscureText: true,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: "New Password",
                       border: OutlineInputBorder(),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
                   TextField(
                     controller: confirmPasswordController,
                     obscureText: true,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: "Re-enter New Password",
                       border: OutlineInputBorder(),
                     ),
@@ -389,17 +329,20 @@ class _ProfileState extends State<Profile> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.of(context).pop(); // Close the dialog
               },
-              child: const Text("Cancel"),
+              child: Text("Cancel"),
             ),
             ElevatedButton(
-              onPressed: () async {
+              onPressed: () {
+                // Validate Passwords
                 String oldPassword = oldPasswordController.text;
                 String newPassword = newPasswordController.text;
                 String confirmPassword = confirmPasswordController.text;
 
-                if (oldPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
+                if (oldPassword.isEmpty ||
+                    newPassword.isEmpty ||
+                    confirmPassword.isEmpty) {
                   _showMessage(context, "All fields are required!");
                   return;
                 }
@@ -410,78 +353,18 @@ class _ProfileState extends State<Profile> {
                 }
 
                 if (newPassword.length < 6) {
-                  _showMessage(context, "Password must be at least 6 characters long!");
+                  _showMessage(
+                      context, "Password must be at least 6 characters long!");
                   return;
                 }
 
-                try {
-                  final prefs = await SharedPreferences.getInstance();
-                  final int? patientId = prefs.getInt('userId');
-                  if (patientId == null) {
-                    _showMessage(context, "User not logged in!");
-                    return;
-                  }
-                  await _apiService.changePassword(patientId, oldPassword, newPassword);
-                  Navigator.of(context).pop();
-                  _showMessage(context, "Password changed successfully!");
-                } catch (e) {
-                  _showMessage(context, e.toString());
-                }
-              },
-              child: const Text("Submit"),
-            ),
-          ],
-        );
-      },
-    );
-  }
+                // Perform the password change logic here
+                // e.g., Call an API or update local storage
 
-  void _showDeleteAccountDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("Delete Account"),
-          content: const Text("Are you sure you want to delete your account? This action cannot be undone."),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.of(context).pop(); // Close the dialog
+                _showMessage(context, "Password changed successfully!");
               },
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                try {
-                  final prefs = await SharedPreferences.getInstance();
-                  final int? patientId = prefs.getInt('userId');
-                  if (patientId == null) {
-                    _showMessage(context, "User not logged in!");
-                    return;
-                  }
-                  await _apiService.deleteAccount(patientId);
-                  await _clearSession();
-                  Navigator.of(context).pop();
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const Login()),
-                  );
-                  _showMessage(context, "Account deleted successfully!");
-                } catch (e) {
-                  Navigator.of(context).pop();
-                  _showMessage(context, e.toString());
-                }
-              },
-              child: const Text(
-                "Delete",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red.withOpacity(0.7),
-              ),
+              child: Text("Submit"),
             ),
           ],
         );
@@ -493,8 +376,47 @@ class _ProfileState extends State<Profile> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        duration: const Duration(seconds: 2),
+        duration: Duration(seconds: 2),
       ),
+    );
+  }
+
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Delete Account"),
+          content: Text("Are you sure you want to delete your account? This action cannot be undone."),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // Perform the account deletion logic here
+                // e.g., Call an API or update local storage
+
+                Navigator.of(context).pop(); // Close the dialog
+                _showMessage(context, "Account deleted successfully!");
+              },
+              child: Text("Delete",
+                style: TextStyle(
+                  color: Colors.white, // Text color
+                  fontSize: 16, // Text size
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.withOpacity(0.7), // Button color
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

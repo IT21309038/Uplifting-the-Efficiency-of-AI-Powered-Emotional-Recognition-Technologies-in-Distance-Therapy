@@ -7,7 +7,6 @@ import 'package:thera_up/models/TherapySession.dart';
 import 'package:thera_up/pages/appointment_suggestions.dart';
 import 'package:thera_up/services/PhysicalApiService.dart';
 import 'package:thera_up/services/SessionService.dart';
-import 'package:external_app_launcher/external_app_launcher.dart';
 import 'package:http/http.dart' as http;
 
 class Choice extends StatefulWidget {
@@ -204,26 +203,10 @@ class _ChoiceState extends State<Choice> {
     }
   }
 
-  Future<void> _onValidatePressed() async {
+  void _onValidatePressed() {
     setState(() {
-      isLoading = true;
-    });
-
-    try {
-      await LaunchApp.openApp(
-        androidPackageName: 'com.SentinalsOfLight.Interactive',
-
-        // set to true if you want to open Play Store if not installed
-      );
-    } catch (e) {
-      // Handle error if app not found or other issues
-      print("Failed to launch app: $e");
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
       showValidateButton = false;
-    }
+    });
   }
 
   @override
