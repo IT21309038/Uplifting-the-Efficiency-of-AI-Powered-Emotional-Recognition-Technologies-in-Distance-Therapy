@@ -39,13 +39,11 @@ frames_per_window = fps * window_duration
 
 class ConnectionState:
     def __init__(self):
-        self.current_window_emotions = deque()
+        self.current_window_emotions = deque(maxlen=frames_per_window)
         self.current_stress_level = 0
         self.stress_levels = []
         self.window_emotions = []
         self.window_counter = 1
-        self.last_processed_time = time.time()  # 🕒 Track last window time
-        self.window_timestamps = []
 
 connection_states = {}
 
@@ -73,64 +71,52 @@ def process_frame(frame, state: ConnectionState):
 
         state.current_window_emotions.append(dominant_emotion)
         x, y, w, h = face.left(), face.top(), face.width(), face.height()
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
         cv2.putText(frame, f"{dominant_emotion}", (x, y - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
 
-    # 🕒 Check if 20 seconds passed since last processing
-    if time.time() - state.last_processed_time >= window_duration:
+    if len(state.current_window_emotions) == frames_per_window:
         emotion_counts = Counter(state.current_window_emotions)
-        if emotion_counts:
-            top_emotion = emotion_counts.most_common(1)[0][0]
-
-            if top_emotion == "Neutral":
-                if state.current_stress_level > 0:
-                    state.current_stress_level = max(0, state.current_stress_level - decay_factor)
-                elif state.current_stress_level < 0:
-                    state.current_stress_level = min(0, state.current_stress_level + decay_factor)
-            else:
-                state.current_stress_level += emotion_to_stress[top_emotion]
-
-            state.stress_levels.append(state.current_stress_level)
-            state.window_emotions.append(top_emotion)
-            state.window_timestamps.append(time.strftime('%H:%M:%S'))
-            state.window_counter += 1
-            logger.info(f"🪟 Window {state.window_counter - 1} processed: Emotion={top_emotion}, Stress={state.current_stress_level}")
-
+        top_emotion = emotion_counts.most_common(1)[0][0]
+        if top_emotion == "Neutral":
+            if state.current_stress_level > 0:
+                state.current_stress_level = max(0, state.current_stress_level - decay_factor)
+            elif state.current_stress_level < 0:
+                state.current_stress_level = min(0, state.current_stress_level + decay_factor)
+        else:
+            state.current_stress_level += emotion_to_stress[top_emotion]
+        state.stress_levels.append(state.current_stress_level)
+        state.window_emotions.append(top_emotion)
         state.current_window_emotions.clear()
-        state.last_processed_time = time.time()
+        state.window_counter += 1
 
     return frame, state.current_stress_level
 
-def generate_final_plots(stress_levels, window_emotions, timestamps):
+def generate_final_plots(stress_levels, window_emotions):
     stress_buf, emotion_buf = BytesIO(), BytesIO()
 
-    # 🧠 Plot Stress
     plt.figure(figsize=(10, 6))
-    plt.plot(timestamps, stress_levels, marker='o', color='blue', label="Stress Level")
+    plt.plot(stress_levels, marker='o', color='blue', label="Stress Level")
     plt.axhline(0, linestyle='--', color='gray', label='Neutral')
     plt.title("Stress Over Time From Facial Emotion Recognition")
-    plt.xlabel("Timestamp")
+    plt.xlabel("Time")
     plt.ylabel("Stress")
     plt.grid(True)
     plt.legend()
-    plt.xticks(rotation=45)
     plt.tight_layout()
     plt.savefig(stress_buf, format='png')
     plt.close()
 
-    # 😃 Plot Emotion
     if window_emotions:
         plt.figure(figsize=(10, 6))
         indices = [emotion_labels.index(e) for e in window_emotions]
-        plt.step(timestamps, indices, color='red', where='mid', label="Emotions")
+        plt.step(range(len(indices)), indices, color='red', where='mid', label="Emotions")
         plt.yticks(range(len(emotion_labels)), emotion_labels)
         plt.title("Emotion Changes From Facial Emotion Recognition")
-        plt.xlabel("Timestamp")
+        plt.xlabel("Time")
         plt.ylabel("Emotion")
         plt.grid(True)
         plt.legend()
-        plt.xticks(rotation=45)
         plt.tight_layout()
         plt.savefig(emotion_buf, format='png')
         plt.close()
@@ -227,8 +213,7 @@ async def final_stress(uid: str):
         return JSONResponse(content={"error": "No data found"}, status_code=404)
 
     stress_plot, _ = generate_final_plots(
-        connection_states[uid].stress_levels, connection_states[uid].window_emotions,
-        connection_states[uid].window_timestamps
+        connection_states[uid].stress_levels, connection_states[uid].window_emotions
     )
     return Response(content=stress_plot, media_type="image/png")
 
@@ -242,8 +227,7 @@ async def final_emotion(uid: str):
         return JSONResponse(content={"error": "No data found"}, status_code=404)
 
     _, emotion_plot = generate_final_plots(
-        connection_states[uid].stress_levels, connection_states[uid].window_emotions,
-        connection_states[uid].window_timestamps
+        connection_states[uid].stress_levels, connection_states[uid].window_emotions
     )
     return Response(content=emotion_plot, media_type="image/png")
 

@@ -27,6 +27,7 @@ from io import BytesIO
 from fastapi.responses import StreamingResponse
 from fastapi import Query, HTTPException
 from starlette.websockets import WebSocketDisconnect
+from collections import deque
 
 # Load the saved model
 model = load_model("emotion_recognition_model.h5")
@@ -43,6 +44,47 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+class AudioStressTracker:
+    def __init__(self, decay=0.2):
+        self.stress_level = 0.0
+        self.decay = decay
+        self.recent_emotions = deque(maxlen=5)  # Store last 5 emotions
+
+    def update_stress(self, emotion):
+        self.recent_emotions.append(emotion)
+
+        # Count how often current emotion appears in recent 5
+        count = self.recent_emotions.count(emotion)
+
+        # Dampening factor: stronger repetition = lower impact
+        dampening = 1.0 / count if count > 1 else 1.0
+
+        if emotion == "neutral":
+            if self.stress_level > 0:
+                self.stress_level = max(
+                    0, self.stress_level - self.decay * dampening)
+            elif self.stress_level < 0:
+                self.stress_level = min(
+                    0, self.stress_level + self.decay * dampening)
+        else:
+            emotion_to_stress = {
+                "angry": 1.0,
+                "disgust": 0.7,
+                "fear": 0.9,
+                "happy": -0.5,
+                "neutral": 0.0,
+                "sad": 0.5,
+                "surprise": -0.2
+            }
+            self.stress_level += emotion_to_stress.get(
+                emotion, 0.0) * dampening
+
+        return round(self.stress_level, 2)
+
+
+audio_stress_tracker = AudioStressTracker()
 
 # Define emotion labels (modify based on your model's output)
 emotion_labels = ['neutral', 'calm', 'happy',
@@ -185,6 +227,20 @@ async def websocket_audio_stream(websocket: WebSocket):
                     await asyncio.sleep(0.1)
                     continue
 
+                if np.max(np.abs(audio_array)) < 0.001:
+                    dominant_emotion = "neutral"
+                    stress_level = audio_stress_tracker.update_stress(
+                        dominant_emotion)
+                    response = {
+                        "emotion": dominant_emotion,
+                        "stressLevel": stress_level,
+                        "probabilities": {e: 0.0 for e in emotion_labels},
+                        "timestamp": datetime.now().isoformat()
+                    }
+                    logging.info("🔇 Silent chunk detected → Emotion: neutral")
+                    await websocket.send_json(response)
+                    continue
+
                 # Process audio in chunks
                 try:
                     # Extract features directly from the stream
@@ -195,22 +251,30 @@ async def websocket_audio_stream(websocket: WebSocket):
 
                     # Predict emotion
                     predictions = model.predict(features)[0]
-                    predicted_emotion = emotion_labels[np.argmax(predictions)]
-
-                    # Calculate stress level
                     probabilities = {emotion: float(pred) for emotion, pred in zip(
                         emotion_labels, predictions)}
-                    stress_level = calculate_stress_level(probabilities)
 
-                    # Send back the results
+                    # Merge calm → happy
+                    if "calm" in probabilities:
+                        probabilities["happy"] = probabilities.get(
+                            "happy", 0) + probabilities.pop("calm")
+
+                    # Determine dominant emotion
+                    dominant_emotion = max(
+                        probabilities.items(), key=lambda x: x[1])[0]
+
+                    # Update stress using decay logic
+                    stress_level = audio_stress_tracker.update_stress(
+                        dominant_emotion)
+
+                    # Send response
                     response = {
-                        "emotion": predicted_emotion,
+                        "emotion": dominant_emotion,
                         "stressLevel": stress_level,
                         "probabilities": probabilities,
-                        "timestamp": datetime.utcnow().isoformat()
+                        "timestamp": datetime.now().isoformat()
                     }
                     logging.info(response)
-
                     await websocket.send_json(response)
 
                 except Exception as e:
@@ -247,7 +311,7 @@ async def stress_report(request: Request):
         plt.figure(figsize=(10, 6))
         plt.plot(stress_levels, marker='o', color='blue', label="Stress Level")
         plt.axhline(0, linestyle='--', color='gray', label='Neutral')
-        plt.title("Stress Over Time")
+        plt.title("Vocal Stress Over Time")
         plt.xlabel("Time")
         plt.ylabel("Stress Level")
         plt.grid(True)
@@ -283,7 +347,7 @@ async def emotion_report(request: Request):
         plt.step(range(len(indices)), indices, color='red',
                  where='mid', label="Emotions")
         plt.yticks(range(len(emotion_labels)), emotion_labels)
-        plt.title("Emotion Changes Over Time")
+        plt.title("Vocal Emotion Changes Over Time")
         plt.xlabel("Time")
         plt.ylabel("Emotion")
         plt.grid(True)

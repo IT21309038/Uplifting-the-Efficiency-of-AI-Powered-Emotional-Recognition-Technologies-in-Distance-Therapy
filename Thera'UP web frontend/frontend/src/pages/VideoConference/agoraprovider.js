@@ -68,6 +68,8 @@ export const AgoraProvider = ({
   const [channel, setChannel] = useState(sessionID);
   const [token, setToken] = useState("");
 
+  const lastWindowCounter = useRef(0);
+
   //graph data
   const [stressHistory, setStressHistory] = useState([]);
   const [emotionHistory, setEmotionHistory] = useState([]);
@@ -283,17 +285,29 @@ export const AgoraProvider = ({
         const data = JSON.parse(event.data);
         console.log("📥 Real-time Emotion/Stress from backend:", data);
 
-        const timestamp = new Date().toISOString();
+        // Only update if new window counter
+        if (
+          data.windowCounter &&
+          data.windowCounter !== lastWindowCounter.current
+        ) {
+          lastWindowCounter.current = data.windowCounter; // ✅ Update the ref
 
-        setStressHistory((prev) => [
-          ...prev,
-          { timestamp, userId: data.userId, stress: data.stressLevel },
-        ]);
+          const timestamp = new Date().toISOString();
 
-        setEmotionHistory((prev) => [
-          ...prev,
-          { timestamp, userId: data.userId, emotion: data.emotion },
-        ]);
+          setStressHistory((prev) => [
+            ...prev,
+            { timestamp, userId: data.userId, stress: data.stressLevel },
+          ]);
+
+          setEmotionHistory((prev) => [
+            ...prev,
+            { timestamp, userId: data.userId, emotion: data.emotion },
+          ]);
+        } else {
+          console.log(
+            `⏭️ Skipped update. Current windowCounter: ${data.windowCounter}`
+          );
+        }
       } catch (err) {
         console.error("❌ Failed to parse WebRTC message:", err);
       }
@@ -339,7 +353,7 @@ export const AgoraProvider = ({
 
       // Constants for 15-second audio chunks
       const SAMPLE_RATE = 16000; // 16kHz
-      const CHUNK_DURATION = 45; // seconds
+      const CHUNK_DURATION = 60; // seconds
       const TARGET_BUFFER_SIZE = SAMPLE_RATE * CHUNK_DURATION;
       const CHUNK_SIZE = 4096; // Processing chunk size
 
@@ -833,20 +847,23 @@ export const AgoraProvider = ({
     ),
     datasets: [
       {
-        label: "Positive Stress",
-        data: positiveStressData,
-        borderColor: "#ff4d4d", // red
-        backgroundColor: "rgba(255, 77, 77, 0.2)",
+        label: "🟢Negative Stress 🔴Positive Stress",
+        data: stressHistory.map((entry) => entry.stress),
+        backgroundColor: "rgba(0, 0, 0, 0)", // No fill
+        borderColor: "rgba(0, 0, 0, 0)", // default won't be used
         tension: 0.4,
-        spanGaps: true, // allow skipping nulls
-      },
-      {
-        label: "Negative Stress",
-        data: negativeStressData,
-        borderColor: "#00cc66", // green
-        backgroundColor: "rgba(0, 204, 102, 0.2)",
-        tension: 0.4,
-        spanGaps: true, // allow skipping nulls
+        segment: {
+          borderColor: (ctx) => {
+            const y = ctx?.p0?.parsed?.y;
+            if (y === undefined || y === null) return "#cccccc";
+            return y < 0 ? "#00cc66" : "#ff4d4d";
+          },
+        },
+        pointBackgroundColor: (ctx) => {
+          const y = ctx?.parsed?.y;
+          if (y === undefined || y === null) return "#cccccc";
+          return y < 0 ? "#00cc66" : "#ff4d4d";
+        },
       },
     ],
   };
@@ -963,31 +980,72 @@ export const AgoraProvider = ({
     ],
   };
 
+  // const chartOptions = {
+  //   responsive: true,
+  //   maintainAspectRatio: false,
+  //   plugins: {
+  //     legend: {
+  //       position: "top",
+  //     },
+  //     title: {
+  //       display: true,
+  //       text: "Stress Levels Over Time",
+  //     },
+  //   },
+  //   scales: {
+  //     x: {
+  //       type: "category",
+  //       ticks: {
+  //         autoSkip: false,
+  //       },
+  //     },
+  //     y: {
+  //       beginAtZero: true,
+  //       min: 0,
+  //       max: 100,
+  //       ticks: {
+  //         stepSize: 10,
+  //       },
+  //     },
+  //   },
+  // };
+
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        position: "top",
-      },
       title: {
         display: true,
         text: "Stress Levels Over Time",
+      },
+      legend: {
+        position: "top",
+      },
+      tooltip: {
+        mode: "index",
+        intersect: false,
       },
     },
     scales: {
       x: {
         type: "category",
+        title: {
+          display: true,
+          text: "Time",
+        },
         ticks: {
           autoSkip: false,
         },
       },
       y: {
-        beginAtZero: true,
-        min: 0,
-        max: 100,
+        // REMOVE fixed min/max here
+        title: {
+          display: true,
+          text: "Stress Level",
+        },
         ticks: {
-          stepSize: 10,
+          stepSize: 0.2, // optional
+          callback: (value) => value.toFixed(1),
         },
       },
     },
@@ -998,7 +1056,7 @@ export const AgoraProvider = ({
 
     try {
       const stressLevel = response.stressLevel ?? 0.0; // Use server-provided stress level
-      const timestamp = response.timestamp || new Date().toISOString(); // Use server timestamp or fallback to now
+      const timestamp = response.timestamp || new Date().toLocaleTimeString(); // Use server timestamp or fallback to now
       const emotion = response.emotion ?? "neutral"; // Emotion if needed
 
       setAudioClips((prev) => [
@@ -1024,13 +1082,12 @@ export const AgoraProvider = ({
   };
 
   const audioEmotionLabels = [
-    "neutral",
-    "calm",
-    "happy",
-    "sad",
     "angry",
-    "fear",
     "disgust",
+    "fear",
+    "happy",
+    "neutral",
+    "sad",
     "surprise",
   ];
 

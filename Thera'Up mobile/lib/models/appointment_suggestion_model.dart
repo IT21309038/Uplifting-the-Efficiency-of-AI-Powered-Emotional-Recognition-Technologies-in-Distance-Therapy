@@ -47,6 +47,6 @@ class AppointmentSuggestionsModel {
   // Helper function to get doctor image (you can customize this)
   static String _getDoctorImage(int doctorId) {
     // Replace with your logic to fetch doctor images
-    return 'https://t4.ftcdn.net/jpg/04/96/79/09/360_F_496790950_JxUvnh6hkvmi0KB17xCLDvQngrAa26MZ.jpg'; // Placeholder image
+    return 'https://static-00.iconduck.com/assets.00/im-user-online-icon-242x256-6bbvmx3a.png'; // Placeholder image
   }
 }
