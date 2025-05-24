@@ -49,6 +49,20 @@ export const navigation = [
         ],
         allowedRoles: ["DOCTOR"],
       },
+      {
+        key: "3.2",
+        label: "Initial Report",
+        path: "/Reports/Diagnostic/stressReport/viewAll",
+        breadcrumb: [
+          {
+            title: "Reports",
+          },
+          {
+            title: "Initial Report",
+          },
+        ],
+        allowedRoles: ["DOCTOR"],
+      },
     ],
   },
   // {
@@ -74,7 +88,7 @@ export const navigation = [
     icon: (
       <Icon icon="carbon:user-activity" style={{ fontSize: defaultIconSize }} />
     ),
-    path: "/activities/test",
+    path: "/activities/viewAll",
     breadcrumb: [
       {
         title: "Activities",

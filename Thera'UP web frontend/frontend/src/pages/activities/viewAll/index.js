@@ -29,7 +29,9 @@ export default function PatientList() {
   useEffect(() => {
     const fetchPatients = async () => {
       try {
-        const response = await apiDefinitions.getPatientListCompleted();
+        const response = await apiDefinitions.getPatientListCompleted(
+          session.user.id
+        );
         console.log(response.data.statusCode);
         if (response.data.statusCode === 200) {
           setPatients(response.data.data);
@@ -79,11 +81,21 @@ export default function PatientList() {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Patient Name</TableCell>
-                <TableCell>Gender</TableCell>
-                <TableCell>Date of Birth</TableCell>
-                <TableCell>Phone</TableCell>
-                <TableCell>Action</TableCell>
+                <TableCell>
+                  <b>Patient Name</b>
+                </TableCell>
+                <TableCell>
+                  <b>Gender</b>
+                </TableCell>
+                <TableCell>
+                  <b>Date of Birth</b>
+                </TableCell>
+                <TableCell>
+                  <b>Phone</b>
+                </TableCell>
+                <TableCell>
+                  <b>Action</b>
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>

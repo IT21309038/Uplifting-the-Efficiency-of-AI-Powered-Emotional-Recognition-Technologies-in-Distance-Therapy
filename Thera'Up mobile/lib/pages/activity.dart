@@ -79,7 +79,7 @@ class _ActivitiesOverviewState extends State<ActivitiesOverview> with RouteAware
 
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.6.32:8080/api/v1/theraup/postTherapy/progress/1'),
+        Uri.parse('https://theraupbackend.pixelcore.lk/api/v1/theraup/postTherapy/progress/1'),
       );
 
       if (response.statusCode == 200) {

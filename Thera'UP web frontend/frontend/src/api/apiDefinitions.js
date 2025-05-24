@@ -20,8 +20,10 @@ const apiDefinitions = {
   getPatientListPending: async function () {
     return await api.get("doctors/get-patient-list/2?status=pending");
   },
-  getPatientListCompleted: async function () {
-    return await api.get("doctors/get-patient-list/1?status=completed");
+  getPatientListCompleted: async function (doctorID) {
+    return await api.get(
+      `doctors/get-patient-list/${doctorID}?status=completed`
+    );
   },
 
   /****************Patient API Start */
@@ -55,7 +57,7 @@ const apiDefinitions = {
     return await api.get(
       `reports/get-report-paginated/${offset}/${pageSize}?patientId=${patientId}&doctorId=${doctorId}`
     );
-  }
+  },
 };
 
 export default apiDefinitions;
