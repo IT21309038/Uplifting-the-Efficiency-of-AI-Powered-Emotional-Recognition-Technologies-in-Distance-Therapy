@@ -231,7 +231,7 @@ export default function PatientReport() {
         </Typography>
         <Typography variant="body1">
           Based on the completed activities, the patient has shown{" "}
-          <strong>{progressStatus === "FULL" ? "full" : "partial"}</strong>{" "}
+          <strong>{progressStatus === "FULL" ? "full" : "Zero"}</strong>{" "}
           improvement in their assigned tasks.
         </Typography>
       </Paper>

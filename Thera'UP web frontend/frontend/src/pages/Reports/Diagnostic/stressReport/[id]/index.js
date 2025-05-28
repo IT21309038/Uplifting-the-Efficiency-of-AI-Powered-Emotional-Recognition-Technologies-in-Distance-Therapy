@@ -30,6 +30,7 @@ export default function StressReport() {
   const [avgReactionTime, setAvgReactionTime] = useState("");
 
   useEffect(() => {
+    if (!id) return;
     if (id) {
       const fetchData = async () => {
         try {
@@ -37,7 +38,9 @@ export default function StressReport() {
           console.log(response.data);
           setReportData(response.data);
           setAvgReactionTime(
-            response.data.data.latestStressScoreRecord.averageReactionTime
+            response.data.data.latestStressScoreRecord?.averageReactionTime
+              ? response.data.data.latestStressScoreRecord?.averageReactionTime
+              : "N/A"
           );
         } catch (error) {
           console.error("Error fetching data:", error);
@@ -249,17 +252,19 @@ export default function StressReport() {
                                 {
                                   value: 0,
                                   valueConfig: {
-                                    formatTextValue: () => "None",
+                                    formatTextValue: () => "Low",
                                   },
                                 },
                                 {
                                   value: 24.6,
-                                  valueConfig: { formatTextValue: () => "Low" },
+                                  valueConfig: {
+                                    formatTextValue: () => "Moderate",
+                                  },
                                 },
                                 {
                                   value: 59.6,
                                   valueConfig: {
-                                    formatTextValue: () => "Moderate",
+                                    formatTextValue: () => "High",
                                   },
                                 },
                                 {
@@ -280,7 +285,8 @@ export default function StressReport() {
                         </Typography>
                       )}
                       <Typography variant="h6" sx={{ mt: 2 }}>
-                        Avg. Reaction Time: {avgReactionTime} ms
+                        Avg. Reaction Time:{" "}
+                        {avgReactionTime ? avgReactionTime : "N/A"} ms
                       </Typography>
                     </Box>
                   </CardContent>

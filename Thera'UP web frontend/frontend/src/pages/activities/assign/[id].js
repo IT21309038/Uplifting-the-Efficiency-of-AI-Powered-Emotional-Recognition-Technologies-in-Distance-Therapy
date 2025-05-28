@@ -39,6 +39,7 @@ const StyledButton = styled(Button)(({ theme }) => ({
 export default function PatientDetails() {
   const router = useRouter();
   const { id } = router.query;
+  const [btnClicked, setBtnClicked] = useState(false);
 
   const [patientData, setPatientData] = useState({
     stressLevel: "",
@@ -73,16 +74,16 @@ export default function PatientDetails() {
 
       const response = await apiDefinitions.activitySuggestion(payload);
 
-      // Check status code first
-      if (response.data.statusCode === 200 && response.data.data) {
+      // Check the HTTP status code
+      if (response.status === 200 && response.data.data) {
         // Success case with activities
         setRecommendedActivities(response.data.data);
         setSelectedActivities({});
       } else if (response.status === 404) {
-        // No activities found case
-        setRecommendedActivities([]); // Clear existing activities
+        // No activities found
+        setRecommendedActivities([]);
         setSelectedActivities({});
-        toast.error(response.data.message || "No Activities Were Found");
+        toast.error("No Activities Were Found");
       } else {
         // Unexpected status code
         setRecommendedActivities([]);
@@ -90,19 +91,26 @@ export default function PatientDetails() {
         toast.error("Unexpected response from server");
       }
     } catch (error) {
-      // Network or other errors
-      setRecommendedActivities([]);
-      setSelectedActivities({});
-      console.error("Error fetching activities:", error);
-      toast.error("Failed to fetch activities");
+      // Handle errors, including 404, by checking error.response
+      if (error.response && error.response.status === 404) {
+        setRecommendedActivities([]);
+        setSelectedActivities({});
+        toast.error("No Activities Were Found");
+      } else {
+        // Other network or unexpected errors
+        setRecommendedActivities([]);
+        setSelectedActivities({});
+        console.error("Error fetching activities:", error);
+        toast.error("Failed to fetch activities");
+      }
     }
   };
 
   useEffect(() => {
-    if (id) {
+    if (btnClicked) {
       fetchActivities();
     }
-  }, [id]);
+  }, [btnClicked]);
 
   const handleInputChange = (field) => (event) => {
     const value =
@@ -137,12 +145,13 @@ export default function PatientDetails() {
 
     const response = await apiDefinitions.assignActivities(payload);
     if (response.data.statusCode === 201) {
-      alert("Activities assigned successfully!");
+      toast.success("Activities assigned successfully!");
     }
   };
 
   const handleSuggestActivities = () => {
     fetchActivities();
+    setBtnClicked(!btnClicked);
   };
 
   return (

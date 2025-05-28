@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'per_activity.dart';
 import 'package:thera_up/main.dart';
+import 'package:thera_up/services/SessionService.dart';
 
 class Activity extends StatelessWidget {
   const Activity({Key? key}) : super(key: key);
@@ -46,11 +47,26 @@ class _ActivitiesOverviewState extends State<ActivitiesOverview> with RouteAware
   List<ActivityModel> availableActivities = [];
   bool isLoading = true;
   String? errorMessage;
+  int? userId; // Add userId variable
 
   @override
   void initState() {
     super.initState();
-    fetchActivityData();
+    _initializeUserIdAndFetchData(); // Call a new method to handle async initialization
+  }
+
+  // New method to initialize userId and fetch data
+  Future<void> _initializeUserIdAndFetchData() async {
+    try {
+      userId = await SessionService.getUserId(); // Fetch userId
+      await fetchActivityData(); // Fetch activity data after getting userId
+    } catch (e) {
+      print('Error fetching userId: $e');
+      setState(() {
+        errorMessage = 'Failed to retrieve user ID. Please try again.';
+        isLoading = false;
+      });
+    }
   }
 
   @override
@@ -68,7 +84,7 @@ class _ActivitiesOverviewState extends State<ActivitiesOverview> with RouteAware
   @override
   void didPopNext() {
     // Called when coming back to this page
-    fetchActivityData();
+    _initializeUserIdAndFetchData(); // Re-fetch userId and data when returning to the page
   }
 
   Future<void> fetchActivityData() async {
@@ -78,8 +94,13 @@ class _ActivitiesOverviewState extends State<ActivitiesOverview> with RouteAware
     });
 
     try {
+      if (userId == null) {
+        throw Exception('User ID not available');
+      }
+
+      // Update the API URL to include userId
       final response = await http.get(
-        Uri.parse('https://theraupbackend.pixelcore.lk/api/v1/theraup/postTherapy/progress/1'),
+        Uri.parse('https://theraupbackend.pixelcore.lk/api/v1/theraup/postTherapy/progress/$userId'),
       );
 
       if (response.statusCode == 200) {
@@ -106,7 +127,7 @@ class _ActivitiesOverviewState extends State<ActivitiesOverview> with RouteAware
               (activity['completion_percentage'] as num).toDouble(),
               _getIconForActivity(activity['activity_name']),
               activity['activity_id'],
-              (activity['remaining_time'] as num).toDouble(), // remaining_time is in minutes
+              (activity['remaining_time'] as num).toDouble(),
             );
           }).toList();
           isLoading = false;
@@ -119,7 +140,7 @@ class _ActivitiesOverviewState extends State<ActivitiesOverview> with RouteAware
       setState(() {
         isLoading = false;
         errorMessage = 'Failed to connect to server. Please check your connection and try again.';
-        // Fallback to mock data (matches the latest API response)
+        // Fallback to mock data
         totalActivities = 6;
         completedActivities = 1;
         totalTimeAssigned = "120 min";

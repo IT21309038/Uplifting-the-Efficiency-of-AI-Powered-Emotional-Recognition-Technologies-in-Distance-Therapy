@@ -17,12 +17,12 @@ const apiDefinitions = {
       `schedule/get-schedule-by-doctor/${doctorId}?sortBy=${currentMonth}`
     );
   },
-  getPatientListPending: async function () {
-    return await api.get("doctors/get-patient-list/2?status=pending");
+  getPatientListPending: async function (doctorID) {
+    return await api.get(`doctors/get-patient-list/${doctorID}?status=pending`);
   },
   getPatientListCompleted: async function (doctorID) {
     return await api.get(
-      `doctors/get-patient-list/${doctorID}?status=completed`
+      `doctors/get-patient-list/${doctorID}?status=complete`
     );
   },
 

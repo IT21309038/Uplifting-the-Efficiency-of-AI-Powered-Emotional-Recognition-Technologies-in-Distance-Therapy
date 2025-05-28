@@ -18,6 +18,7 @@ import {
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import apiDefinitions from "@/api/apiDefinitions";
 import { styled } from "@mui/material/styles";
+import { useSession } from "next-auth/react";
 
 // Custom styled components
 const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
@@ -36,11 +37,14 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
 export default function PatientList() {
   const router = useRouter();
   const [patients, setPatients] = useState([]);
+  const { data: session } = useSession();
 
   useEffect(() => {
     const fetchPatients = async () => {
       try {
-        const response = await apiDefinitions.getPatientListPending();
+        const response = await apiDefinitions.getPatientListPending(
+          session?.user?.id
+        );
         if (response.data.statusCode === 200) {
           const mappedPatients = response.data.data.map((patient) => ({
             id: patient.id,

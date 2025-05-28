@@ -69,6 +69,29 @@ const StyledLinearProgress = styled(LinearProgress)(
   })
 );
 
+const patientNameMapping = {
+  1: "Shadhir Ameen",
+  2: "Thanish Ahmed",
+  3: "Kavija Sapukotana",
+  4: "Ashen Pradeep",
+  5: "Ashan Nirmal",
+  6: "Jawiz Ahmed",
+  7: "Shashika Weerakoon",
+  8: "Minula Deneth",
+  9: "Eraji Hegoda",
+  10: "Ravisara Samaranayake",
+  11: "Pasan Samarawickrama",
+  12: "Ravisara Samaranayake",
+  13: "Nethum Vishwadinu",
+  14: "Auththara Wasala Divarathna",
+  15: "Sahanjani",
+  16: "Sahasrika",
+  17: "Kivindu Sachintha",
+  18: "Hirudaka",
+  19: "Nadun Bhagya",
+  20: "Razer",
+};
+
 export default function PatientList() {
   const router = useRouter();
   const [patients, setPatients] = useState([]);
@@ -78,14 +101,18 @@ export default function PatientList() {
       try {
         const response = await apiDefinitions.allPatientProgress();
         if (response.data.statusCode === 200) {
-          const mappedPatients = response.data.data.patients.map((patient) => ({
+          let mappedPatients = response.data.data.patients.map((patient) => ({
             id: patient.patientId,
-            name: `Patient ${patient.patientId}`,
+            // Use the patient name mapping instead of `Patient ${patient.patientId}`
+            name:
+              patientNameMapping[patient.patientId] ||
+              `Patient ${patient.patientId}`,
             assignedActivities: patient.totalAssignedActivities,
             completedActivities: patient.completedActivities,
             timeForCompletion: `${patient.totalTimeRemaining} mins`,
             completionPercentage: patient.progressPercentage,
           }));
+
           setPatients(mappedPatients);
         }
       } catch (error) {
@@ -98,7 +125,6 @@ export default function PatientList() {
 
   const handleViewReport = (patientId) => {
     router.push(`/TrackActivities/detailedReport/${patientId}`);
-    // router.push(`/TrackActivities/detailedReport`);
   };
 
   return (

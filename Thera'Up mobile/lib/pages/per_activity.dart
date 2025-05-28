@@ -2,25 +2,25 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:thera_up/services/SessionService.dart';
 
 class PerActivity extends StatefulWidget {
   final String activityName;
   final double allocatedTime;
   final String location;
-  final String activityId; // Add this line
+  final String activityId;
 
   const PerActivity({
     super.key,
     required this.activityName,
     required this.allocatedTime,
     required this.location,
-    required this.activityId, // Add this
+    required this.activityId,
   });
 
   @override
   _PerActivityState createState() => _PerActivityState();
 }
-
 
 class _PerActivityState extends State<PerActivity> {
   Timer? _timer;
@@ -28,15 +28,26 @@ class _PerActivityState extends State<PerActivity> {
   int _remainingSeconds = 0;
   bool _isRunning = false;
   bool _isPaused = false;
-
-  final String activityId = "ACT001"; // Replace this with a dynamic value if needed
-  final String patientId = "1"; // Hardcoded as per your instruction
+  int? userId;
 
   @override
   void initState() {
     super.initState();
     _totalSeconds = (widget.allocatedTime * 60).toInt();
     _remainingSeconds = _totalSeconds;
+    _initializeUserId();
+  }
+
+  Future<void> _initializeUserId() async {
+    try {
+      userId = await SessionService.getUserId();
+      setState(() {});
+    } catch (e) {
+      print('Error fetching userId: $e');
+      setState(() {
+        userId = null;
+      });
+    }
   }
 
   void _startTimer() {
@@ -79,6 +90,13 @@ class _PerActivityState extends State<PerActivity> {
   }
 
   Future<void> _updateRemainingTimeToServer() async {
+    if (userId == null) {
+      print('Error: User ID not available');
+      return;
+    }
+
+    print('Sending update with userId: $userId'); // Log userId
+
     final url = Uri.parse("https://theraupbackend.pixelcore.lk/api/v1/theraup/postTherapy/updateRemainingTime");
 
     try {
@@ -86,10 +104,9 @@ class _PerActivityState extends State<PerActivity> {
         url,
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "patient_id": patientId,
+          "patient_id": userId,
           "activity_id": widget.activityId,
           "remaining_time": _remainingSeconds ~/ 60,
-
         }),
       );
 
